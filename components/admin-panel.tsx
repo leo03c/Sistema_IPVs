@@ -73,6 +73,9 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const [selectedUserId, setSelectedUserId] = useState<string>("")
   const [selectedIPV, setSelectedIPV] = useState<IPV | null>(null)
   const [activeTab, setActiveTab] = useState<"products" | "reports">("products")
+  const [isCreatingIPV, setIsCreatingIPV] = useState(false)
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false)
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -85,20 +88,25 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       return
     }
 
-    const { data, error } = await supabase.from("ipvs").insert({
-      name: formData.get("name") as string,
-      user_id: selectedUserId,
-      created_by: profile.id,
-    }).select("*, profiles!ipvs_user_id_fkey(email)")
+    setIsCreatingIPV(true)
+    try {
+      const { data, error } = await supabase.from("ipvs").insert({
+        name: formData.get("name") as string,
+        user_id: selectedUserId,
+        created_by: profile.id,
+      }).select("*, profiles!ipvs_user_id_fkey(email)")
 
-    if (!error && data) {
-      setIpvs([data[0], ...ipvs])
-      setIsIPVDialogOpen(false)
-      setSelectedUserId("")
-      ;(e.target as HTMLFormElement).reset()
-    } else {
-      console.error("Error creating IPV:", error)
-      alert("Error al crear el IPV: " + error?.message)
+      if (!error && data) {
+        setIpvs([data[0], ...ipvs])
+        setIsIPVDialogOpen(false)
+        setSelectedUserId("")
+        ;(e.target as HTMLFormElement).reset()
+      } else {
+        console.error("Error creating IPV:", error)
+        alert("Error al crear el IPV: " + error?.message)
+      }
+    } finally {
+      setIsCreatingIPV(false)
     }
   }
 
@@ -127,21 +135,26 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 
     const initialStock = Number.parseInt(formData.get("initial_stock") as string)
 
-    const { data, error } = await supabase.from("products").insert({
-      ipv_id: selectedIPV.id,
-      name: formData.get("name") as string,
-      price: Number.parseFloat(formData.get("price") as string),
-      initial_stock: initialStock,
-      current_stock: initialStock,
-    }).select()
+    setIsCreatingProduct(true)
+    try {
+      const { data, error } = await supabase.from("products").insert({
+        ipv_id: selectedIPV.id,
+        name: formData.get("name") as string,
+        price: Number.parseFloat(formData.get("price") as string),
+        initial_stock: initialStock,
+        current_stock: initialStock,
+      }).select()
 
-    if (!error && data) {
-      setProducts([...products, data[0]])
-      setIsProductDialogOpen(false)
-      ;(e.target as HTMLFormElement).reset()
-    } else {
-      console.error("Error creating product:", error)
-      alert("Error al crear el producto: " + error?.message)
+      if (!error && data) {
+        setProducts([...products, data[0]])
+        setIsProductDialogOpen(false)
+        ;(e.target as HTMLFormElement).reset()
+      } else {
+        console.error("Error creating product:", error)
+        alert("Error al crear el producto: " + error?.message)
+      }
+    } finally {
+      setIsCreatingProduct(false)
     }
   }
 
@@ -181,13 +194,18 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 
   // Update a product
   const updateProduct = async (productId: string, updates: { name?: string; price?: number; initial_stock?: number; current_stock?: number }) => {
-    const { error } = await supabase.from("products").update(updates).eq("id", productId)
+    setIsUpdatingProduct(true)
+    try {
+      const { error } = await supabase.from("products").update(updates).eq("id", productId)
 
-    if (!error) {
-      setProducts(products.map((p) => p.id === productId ? { ...p, ...updates } : p))
-    } else {
-      console.error("Error updating product:", error)
-      alert("Error al actualizar el producto: " + error.message)
+      if (!error) {
+        setProducts(products.map((p) => p.id === productId ? { ...p, ...updates } : p))
+      } else {
+        console.error("Error updating product:", error)
+        alert("Error al actualizar el producto: " + error.message)
+      }
+    } finally {
+      setIsUpdatingProduct(false)
     }
   }
 
@@ -301,8 +319,8 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                           placeholder="¿Cuántos productos ingresas?"
                         />
                       </div>
-                      <Button type="submit" className="w-full">
-                        Agregar Producto
+                      <Button type="submit" className="w-full" disabled={isCreatingProduct}>
+                        {isCreatingProduct ? "Agregando..." : "Agregar Producto"}
                       </Button>
                     </form>
                   </DialogContent>
@@ -433,8 +451,8 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                         <Label htmlFor="edit_current_stock">Stock Actual</Label>
                         <Input id="edit_current_stock" name="current_stock" type="number" min="0" defaultValue={editingProduct.current_stock} required />
                       </div>
-                      <Button type="submit" className="w-full">
-                        Guardar Cambios
+                      <Button type="submit" className="w-full" disabled={isUpdatingProduct}>
+                        {isUpdatingProduct ? "Guardando..." : "Guardar Cambios"}
                       </Button>
                     </form>
                   )}
@@ -510,8 +528,8 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                     </SelectContent>
                   </Select>
                 </div>
-                <Button type="submit" className="w-full">
-                  Crear IPV
+                <Button type="submit" className="w-full" disabled={isCreatingIPV}>
+                  {isCreatingIPV ? "Creando..." : "Crear IPV"}
                 </Button>
               </form>
             </DialogContent>
