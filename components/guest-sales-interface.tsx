@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Plus, Trash2, Banknote, CreditCard, DollarSign, Calculator } from "lucide-react"
 import Link from "next/link"
+import { formatCurrency } from "@/lib/utils"
 
 interface GuestProduct {
   id: string
@@ -156,21 +157,21 @@ export function GuestSalesInterface() {
           <CardContent className="p-3 text-center">
             <Banknote className="h-5 w-5 mx-auto mb-1" />
             <p className="text-xs opacity-90">Efectivo</p>
-            <p className="text-lg font-bold">${totalCash.toFixed(2)}</p>
+            <p className="text-lg font-bold">${formatCurrency(totalCash)}</p>
           </CardContent>
         </Card>
         <Card className="bg-blue-500 text-white">
           <CardContent className="p-3 text-center">
             <CreditCard className="h-5 w-5 mx-auto mb-1" />
             <p className="text-xs opacity-90">Transfer</p>
-            <p className="text-lg font-bold">${totalTransfer.toFixed(2)}</p>
+            <p className="text-lg font-bold">${formatCurrency(totalTransfer)}</p>
           </CardContent>
         </Card>
         <Card className="bg-purple-600 text-white">
           <CardContent className="p-3 text-center">
             <DollarSign className="h-5 w-5 mx-auto mb-1" />
             <p className="text-xs opacity-90">Total</p>
-            <p className="text-lg font-bold">${totalGeneral.toFixed(2)}</p>
+            <p className="text-lg font-bold">${formatCurrency(totalGeneral)}</p>
           </CardContent>
         </Card>
       </div>
@@ -253,7 +254,7 @@ export function GuestSalesInterface() {
                       <div className="p-3 bg-gray-50 border-b flex items-center justify-between">
                         <div>
                           <h3 className="font-semibold text-gray-900">{product.name}</h3>
-                          <p className="text-sm text-gray-600">${product.price.toFixed(2)} c/u</p>
+                          <p className="text-sm text-gray-600">${formatCurrency(product.price)} c/u</p>
                         </div>
                         <Button
                           variant="ghost"
@@ -284,7 +285,7 @@ export function GuestSalesInterface() {
                             </Button>
                             <div className="flex-1 text-center">
                               <p className="text-2xl font-bold">{product.soldCash}</p>
-                              <p className="text-xs text-gray-500">${(product.soldCash * product.price).toFixed(2)}</p>
+                              <p className="text-xs text-gray-500">${formatCurrency(product.soldCash * product.price)}</p>
                             </div>
                             <Button
                               variant="default"
@@ -315,7 +316,7 @@ export function GuestSalesInterface() {
                             <div className="flex-1 text-center">
                               <p className="text-2xl font-bold">{product.soldTransfer}</p>
                               <p className="text-xs text-gray-500">
-                                ${(product.soldTransfer * product.price).toFixed(2)}
+                                ${formatCurrency(product.soldTransfer * product.price)}
                               </p>
                             </div>
                             <Button
@@ -335,7 +336,7 @@ export function GuestSalesInterface() {
                         <div className="bg-purple-50 rounded-lg p-2 text-center">
                           <span className="text-sm text-purple-600">Total producto: </span>
                           <span className="font-bold text-purple-700">
-                            ${((product.soldCash + product.soldTransfer) * product.price).toFixed(2)}
+                            ${formatCurrency((product.soldCash + product.soldTransfer) * product.price)}
                           </span>
                         </div>
                       </div>
@@ -363,7 +364,7 @@ export function GuestSalesInterface() {
                   <div className="bg-green-50 rounded-lg p-4 text-center">
                     <Banknote className="h-8 w-8 mx-auto mb-2 text-green-600" />
                     <p className="text-sm text-green-700 font-medium">Total Efectivo</p>
-                    <p className="text-2xl font-bold text-green-800">${totalCash.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-green-800">${formatCurrency(totalCash)}</p>
                     <p className="text-xs text-green-600 mt-1">
                       {products.reduce((sum, p) => sum + p.soldCash, 0)} unidades
                     </p>
@@ -371,7 +372,7 @@ export function GuestSalesInterface() {
                   <div className="bg-blue-50 rounded-lg p-4 text-center">
                     <CreditCard className="h-8 w-8 mx-auto mb-2 text-blue-600" />
                     <p className="text-sm text-blue-700 font-medium">Total Transferencia</p>
-                    <p className="text-2xl font-bold text-blue-800">${totalTransfer.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-blue-800">${formatCurrency(totalTransfer)}</p>
                     <p className="text-xs text-blue-600 mt-1">
                       {products.reduce((sum, p) => sum + p.soldTransfer, 0)} unidades
                     </p>
@@ -382,7 +383,7 @@ export function GuestSalesInterface() {
                 <div className="bg-purple-100 rounded-lg p-4 text-center">
                   <DollarSign className="h-10 w-10 mx-auto mb-2 text-purple-600" />
                   <p className="text-lg text-purple-700 font-medium">Total General</p>
-                  <p className="text-3xl font-bold text-purple-800">${totalGeneral.toFixed(2)}</p>
+                  <p className="text-3xl font-bold text-purple-800">${formatCurrency(totalGeneral)}</p>
                   <p className="text-sm text-purple-600 mt-1">
                     {products.reduce((sum, p) => sum + p.soldCash + p.soldTransfer, 0)} unidades vendidas
                   </p>
@@ -402,25 +403,25 @@ export function GuestSalesInterface() {
                       <div key={product.id} className="border rounded-lg p-3">
                         <div className="flex justify-between items-center mb-2">
                           <h4 className="font-semibold">{product.name}</h4>
-                          <span className="text-sm text-gray-500">${product.price.toFixed(2)}/u</span>
+                          <span className="text-sm text-gray-500">${formatCurrency(product.price)}/u</span>
                         </div>
                         <div className="grid grid-cols-3 gap-2 text-center text-sm">
                           <div className="bg-green-50 rounded p-2">
                             <p className="text-green-600 font-medium">{product.soldCash}</p>
-                            <p className="text-xs text-green-700">${(product.soldCash * product.price).toFixed(2)}</p>
+                            <p className="text-xs text-green-700">${formatCurrency(product.soldCash * product.price)}</p>
                             <p className="text-xs text-gray-500">Efectivo</p>
                           </div>
                           <div className="bg-blue-50 rounded p-2">
                             <p className="text-blue-600 font-medium">{product.soldTransfer}</p>
                             <p className="text-xs text-blue-700">
-                              ${(product.soldTransfer * product.price).toFixed(2)}
+                              ${formatCurrency(product.soldTransfer * product.price)}
                             </p>
                             <p className="text-xs text-gray-500">Transfer</p>
                           </div>
                           <div className="bg-purple-50 rounded p-2">
                             <p className="text-purple-600 font-medium">{product.soldCash + product.soldTransfer}</p>
                             <p className="text-xs text-purple-700">
-                              ${((product.soldCash + product.soldTransfer) * product.price).toFixed(2)}
+                              ${formatCurrency((product.soldCash + product.soldTransfer) * product.price)}
                             </p>
                             <p className="text-xs text-gray-500">Total</p>
                           </div>
@@ -520,7 +521,7 @@ export function GuestSalesInterface() {
                       <span className="text-gray-400">vs</span>
                       <div>
                         <p className="text-xs text-gray-500">Ventas Efectivo</p>
-                        <p className="font-bold text-blue-600">${totalCash.toFixed(2)}</p>
+                        <p className="font-bold text-blue-600">${formatCurrency(totalCash)}</p>
                       </div>
                     </div>
                     <div

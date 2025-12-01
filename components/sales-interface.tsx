@@ -12,6 +12,7 @@ import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculat
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
+import { formatCurrency } from "@/lib/utils"
 
 interface BillCount {
   denomination: number
@@ -276,21 +277,21 @@ export function SalesInterface({
           <CardContent className="p-3 text-center">
             <Banknote className="h-5 w-5 mx-auto mb-1" />
             <p className="text-xs opacity-90">Efectivo</p>
-            <p className="text-lg font-bold">${totalCash.toFixed(2)}</p>
+            <p className="text-lg font-bold">${formatCurrency(totalCash)}</p>
           </CardContent>
         </Card>
         <Card className="bg-blue-500 text-white">
           <CardContent className="p-3 text-center">
             <CreditCard className="h-5 w-5 mx-auto mb-1" />
             <p className="text-xs opacity-90">Transfer</p>
-            <p className="text-lg font-bold">${totalTransfer.toFixed(2)}</p>
+            <p className="text-lg font-bold">${formatCurrency(totalTransfer)}</p>
           </CardContent>
         </Card>
         <Card className="bg-purple-600 text-white">
           <CardContent className="p-3 text-center">
             <DollarSign className="h-5 w-5 mx-auto mb-1" />
             <p className="text-xs opacity-90">Total</p>
-            <p className="text-lg font-bold">${totalGeneral.toFixed(2)}</p>
+            <p className="text-lg font-bold">${formatCurrency(totalGeneral)}</p>
           </CardContent>
         </Card>
       </div>
@@ -356,7 +357,7 @@ export function SalesInterface({
                       </span>
                     </div>
                     <span className="text-xl font-bold text-purple-700">
-                      ${calculateSelectedTotal().toFixed(2)}
+                      ${formatCurrency(calculateSelectedTotal())}
                     </span>
                   </div>
                   <Button 
@@ -404,7 +405,7 @@ export function SalesInterface({
                         {/* Product Info */}
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
-                          <p className="text-lg font-bold text-blue-600">${product.price.toFixed(2)}</p>
+                          <p className="text-lg font-bold text-blue-600">${formatCurrency(product.price)}</p>
                           <div className="flex gap-3 mt-2 text-xs">
                             <span className="text-gray-600">
                               Entrante: <span className="font-semibold">{product.initial_stock}</span>
@@ -501,7 +502,7 @@ export function SalesInterface({
                           </Badge>
                         </div>
                         <span className="text-xl font-bold">
-                          ${payment.total.toFixed(2)}
+                          ${formatCurrency(payment.total)}
                         </span>
                       </div>
 
@@ -510,7 +511,7 @@ export function SalesInterface({
                         {payment.items.map((item, idx) => (
                           <div key={idx} className="flex justify-between text-sm">
                             <span>{item.product.name} x{item.quantity}</span>
-                            <span className="font-medium">${(item.product.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-medium">${formatCurrency(item.product.price * item.quantity)}</span>
                           </div>
                         ))}
                       </div>
@@ -561,7 +562,7 @@ export function SalesInterface({
                   <div className="bg-green-50 rounded-lg p-4 text-center">
                     <Banknote className="h-8 w-8 mx-auto mb-2 text-green-600" />
                     <p className="text-sm text-green-700 font-medium">Total Efectivo</p>
-                    <p className="text-2xl font-bold text-green-800">${totalCash.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-green-800">${formatCurrency(totalCash)}</p>
                     <p className="text-xs text-green-600 mt-1">
                       {sales.filter((s) => s.payment_method === "cash").reduce((sum, s) => sum + s.quantity, 0)} unidades
                     </p>
@@ -569,7 +570,7 @@ export function SalesInterface({
                   <div className="bg-blue-50 rounded-lg p-4 text-center">
                     <CreditCard className="h-8 w-8 mx-auto mb-2 text-blue-600" />
                     <p className="text-sm text-blue-700 font-medium">Total Transferencia</p>
-                    <p className="text-2xl font-bold text-blue-800">${totalTransfer.toFixed(2)}</p>
+                    <p className="text-2xl font-bold text-blue-800">${formatCurrency(totalTransfer)}</p>
                     <p className="text-xs text-blue-600 mt-1">
                       {sales.filter((s) => s.payment_method === "transfer").reduce((sum, s) => sum + s.quantity, 0)} unidades
                     </p>
@@ -580,7 +581,7 @@ export function SalesInterface({
                 <div className="bg-purple-100 rounded-lg p-4 text-center">
                   <DollarSign className="h-10 w-10 mx-auto mb-2 text-purple-600" />
                   <p className="text-lg text-purple-700 font-medium">Total General</p>
-                  <p className="text-3xl font-bold text-purple-800">${totalGeneral.toFixed(2)}</p>
+                  <p className="text-3xl font-bold text-purple-800">${formatCurrency(totalGeneral)}</p>
                   <p className="text-sm text-purple-600 mt-1">
                     {sales.reduce((sum, s) => sum + s.quantity, 0)} unidades vendidas
                   </p>
@@ -609,22 +610,22 @@ export function SalesInterface({
                         <div key={product.id} className="border rounded-lg p-3">
                           <div className="flex justify-between items-center mb-2">
                             <h4 className="font-semibold">{product.name}</h4>
-                            <span className="text-sm text-gray-500">${product.price.toFixed(2)}/u</span>
+                            <span className="text-sm text-gray-500">${formatCurrency(product.price)}/u</span>
                           </div>
                           <div className="grid grid-cols-3 gap-2 text-center text-sm">
                             <div className="bg-green-50 rounded p-2">
                               <p className="text-green-600 font-medium">{cashQuantity}</p>
-                              <p className="text-xs text-green-700">${cashAmount.toFixed(2)}</p>
+                              <p className="text-xs text-green-700">${formatCurrency(cashAmount)}</p>
                               <p className="text-xs text-gray-500">Efectivo</p>
                             </div>
                             <div className="bg-blue-50 rounded p-2">
                               <p className="text-blue-600 font-medium">{transferQuantity}</p>
-                              <p className="text-xs text-blue-700">${transferAmount.toFixed(2)}</p>
+                              <p className="text-xs text-blue-700">${formatCurrency(transferAmount)}</p>
                               <p className="text-xs text-gray-500">Transfer</p>
                             </div>
                             <div className="bg-purple-50 rounded p-2">
                               <p className="text-purple-600 font-medium">{cashQuantity + transferQuantity}</p>
-                              <p className="text-xs text-purple-700">${(cashAmount + transferAmount).toFixed(2)}</p>
+                              <p className="text-xs text-purple-700">${formatCurrency(cashAmount + transferAmount)}</p>
                               <p className="text-xs text-gray-500">Total</p>
                             </div>
                           </div>
@@ -724,7 +725,7 @@ export function SalesInterface({
                       <span className="text-gray-400">vs</span>
                       <div>
                         <p className="text-xs text-gray-500">Ventas Efectivo</p>
-                        <p className="font-bold text-blue-600">${totalCash.toFixed(2)}</p>
+                        <p className="font-bold text-blue-600">${formatCurrency(totalCash)}</p>
                       </div>
                     </div>
                     <div
@@ -792,7 +793,7 @@ export function SalesInterface({
                                 })}
                               </span>
                               <span className="font-bold">
-                                {sale.quantity} × ${Number(sale.unit_price).toFixed(2)} = ${Number(sale.total_amount).toFixed(2)}
+                                {sale.quantity} × ${formatCurrency(Number(sale.unit_price))} = ${formatCurrency(Number(sale.total_amount))}
                               </span>
                             </div>
                           </div>
@@ -812,7 +813,7 @@ export function SalesInterface({
           <DialogHeader>
             <DialogTitle>Seleccionar Método de Pago</DialogTitle>
             <DialogDescription>
-              Total a pagar: ${calculateSelectedTotal().toFixed(2)}
+              Total a pagar: ${formatCurrency(calculateSelectedTotal())}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -824,7 +825,7 @@ export function SalesInterface({
                 return (
                   <div key={productId} className="flex justify-between">
                     <span>{product.name} x{quantity}</span>
-                    <span className="font-medium">${(product.price * quantity).toFixed(2)}</span>
+                    <span className="font-medium">${formatCurrency(product.price * quantity)}</span>
                   </div>
                 )
               })}

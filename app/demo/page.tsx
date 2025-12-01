@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Checkbox } from "@/components/ui/checkbox"
 import { Banknote, CreditCard, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { formatCurrency } from "@/lib/utils"
 
 interface Product {
   id: string
@@ -195,21 +196,21 @@ export default function DemoPage() {
           <CardContent className="p-3 text-center">
             <Banknote className="h-5 w-5 mx-auto mb-1" />
             <p className="text-xs opacity-90">Efectivo</p>
-            <p className="text-lg font-bold">${totalCash.toFixed(2)}</p>
+            <p className="text-lg font-bold">${formatCurrency(totalCash)}</p>
           </CardContent>
         </Card>
         <Card className="bg-blue-500 text-white">
           <CardContent className="p-3 text-center">
             <CreditCard className="h-5 w-5 mx-auto mb-1" />
             <p className="text-xs opacity-90">Transfer</p>
-            <p className="text-lg font-bold">${totalTransfer.toFixed(2)}</p>
+            <p className="text-lg font-bold">${formatCurrency(totalTransfer)}</p>
           </CardContent>
         </Card>
         <Card className="bg-purple-600 text-white">
           <CardContent className="p-3 text-center">
             <DollarSign className="h-5 w-5 mx-auto mb-1" />
             <p className="text-xs opacity-90">Total</p>
-            <p className="text-lg font-bold">${totalGeneral.toFixed(2)}</p>
+            <p className="text-lg font-bold">${formatCurrency(totalGeneral)}</p>
           </CardContent>
         </Card>
       </div>
@@ -269,7 +270,7 @@ export default function DemoPage() {
                       </span>
                     </div>
                     <span className="text-xl font-bold text-purple-700">
-                      ${calculateSelectedTotal().toFixed(2)}
+                      ${formatCurrency(calculateSelectedTotal())}
                     </span>
                   </div>
                   <Button 
@@ -309,7 +310,7 @@ export default function DemoPage() {
                       {/* Product Info */}
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
-                        <p className="text-lg font-bold text-blue-600">${product.price.toFixed(2)}</p>
+                        <p className="text-lg font-bold text-blue-600">${formatCurrency(product.price)}</p>
                         <div className="flex gap-3 mt-2 text-xs">
                           <span className="text-gray-600">
                             Entrante: <span className="font-semibold">{product.initial_stock}</span>
@@ -405,7 +406,7 @@ export default function DemoPage() {
                           </Badge>
                         </div>
                         <span className="text-xl font-bold">
-                          ${payment.total.toFixed(2)}
+                          ${formatCurrency(payment.total)}
                         </span>
                       </div>
 
@@ -414,7 +415,7 @@ export default function DemoPage() {
                         {payment.items.map((item, idx) => (
                           <div key={idx} className="flex justify-between text-sm">
                             <span>{item.product.name} x{item.quantity}</span>
-                            <span className="font-medium">${(item.product.price * item.quantity).toFixed(2)}</span>
+                            <span className="font-medium">${formatCurrency(item.product.price * item.quantity)}</span>
                           </div>
                         ))}
                       </div>
@@ -494,7 +495,7 @@ export default function DemoPage() {
           <DialogHeader>
             <DialogTitle>Seleccionar Método de Pago</DialogTitle>
             <DialogDescription>
-              Total a pagar: ${calculateSelectedTotal().toFixed(2)}
+              Total a pagar: ${formatCurrency(calculateSelectedTotal())}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -506,7 +507,7 @@ export default function DemoPage() {
                 return (
                   <div key={productId} className="flex justify-between">
                     <span>{product.name} x{quantity}</span>
-                    <span className="font-medium">${(product.price * quantity).toFixed(2)}</span>
+                    <span className="font-medium">${formatCurrency(product.price * quantity)}</span>
                   </div>
                 )
               })}
