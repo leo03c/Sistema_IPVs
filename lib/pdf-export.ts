@@ -1,11 +1,10 @@
 import { jsPDF } from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 
-// Type augmentation for jspdf-autotable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: AutoTableOptions) => void
-    lastAutoTable: { finalY: number }
+// Extend jsPDF type to include lastAutoTable property added by jspdf-autotable
+interface jsPDFWithAutoTable extends jsPDF {
+  lastAutoTable: {
+    finalY: number
   }
 }
 
@@ -58,7 +57,7 @@ function formatCurrencyForPdf(amount: number): string {
 }
 
 export function exportReportToPDF(data: ReportData): void {
-  const doc = new jsPDF()
+  const doc = new jsPDF() as jsPDFWithAutoTable
   const pageWidth = doc.internal.pageSize.getWidth()
   
   // Title
@@ -98,7 +97,7 @@ export function exportReportToPDF(data: ReportData): void {
     doc.setFont('helvetica', 'bold')
     doc.text('Detalle por Producto', 14, currentY)
     
-    doc.autoTable({
+    autoTable(doc, {
       startY: currentY + 5,
       head: [['Producto', 'Vendido', 'Efec. (Cant.)', 'Efec. ($)', 'Trans. (Cant.)', 'Trans. ($)', 'Total ($)']],
       body: data.productStats.map(stat => [
@@ -134,7 +133,7 @@ export function exportReportToPDF(data: ReportData): void {
     const billsWithValue = data.bills.filter(b => b.count > 0)
     const totalBills = data.bills.reduce((sum, b) => sum + (b.denomination * b.count), 0)
     
-    doc.autoTable({
+    autoTable(doc, {
       startY: currentY + 5,
       head: [['Denominación', 'Cantidad', 'Subtotal']],
       body: [
@@ -166,7 +165,7 @@ export function exportReportToPDF(data: ReportData): void {
     doc.setFont('helvetica', 'bold')
     doc.text('Historial de Ventas', 14, currentY)
     
-    doc.autoTable({
+    autoTable(doc, {
       startY: currentY + 5,
       head: [['Fecha y Hora', 'Producto', 'Cant.', 'Pago', 'Total']],
       body: data.salesHistory.map(sale => [
