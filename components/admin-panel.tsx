@@ -155,66 +155,68 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   // If an IPV is selected, show the IPV detail view
   if (selectedIPV) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 overflow-x-hidden">
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => setSelectedIPV(null)}>
-                <ArrowLeft className="h-5 w-5" />
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedIPV(null)} className="shrink-0 h-8 w-8 sm:h-10 sm:w-10">
+                <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{selectedIPV.name}</h1>
-                <p className="text-sm text-gray-500">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 truncate">{selectedIPV.name}</h1>
+                <p className="text-xs sm:text-sm text-gray-500 truncate">
                   Asignado a: {selectedIPV.profiles?.email || "Sin asignar"}
                 </p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Cerrar Sesión
+            <Button variant="outline" onClick={handleLogout} size="sm" className="shrink-0 h-8 sm:h-9 px-2 sm:px-3">
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline sm:ml-2">Salir</span>
             </Button>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-4 pt-4">
-          <div className="flex gap-2 mb-4">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-3 sm:pt-4">
+          <div className="flex gap-2 mb-3 sm:mb-4">
             <Button
               variant={activeTab === "products" ? "default" : "outline"}
               onClick={() => setActiveTab("products")}
-              className="flex-1"
+              className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
             >
-              <Package className="h-4 w-4 mr-2" />
-              Productos
+              <Package className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Productos</span>
+              <span className="sm:hidden ml-1">Prod.</span>
             </Button>
             <Button
               variant={activeTab === "reports" ? "default" : "outline"}
               onClick={() => setActiveTab("reports")}
-              className="flex-1"
+              className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
             >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Reportes
+              <BarChart3 className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Reportes</span>
+              <span className="sm:hidden ml-1">Rep.</span>
             </Button>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto p-4">
+        <div className="max-w-7xl mx-auto p-3 sm:p-4">
           {/* Products Tab */}
           {activeTab === "products" && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Productos del IPV</h2>
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <h2 className="text-base sm:text-lg md:text-xl font-semibold">Productos del IPV</h2>
                 <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Agregar Producto
+                    <Button className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
+                      <Plus className="h-4 w-4" />
+                      <span className="ml-1">Agregar</span>
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
                     <DialogHeader>
-                      <DialogTitle>Agregar Producto a {selectedIPV.name}</DialogTitle>
+                      <DialogTitle className="text-base sm:text-lg">Agregar Producto a {selectedIPV.name}</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={createProduct} className="space-y-4">
                       <div className="space-y-2">
@@ -245,19 +247,19 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
               </div>
 
               {ipvProducts.length === 0 ? (
-                <Card className="p-6 text-center">
-                  <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600 mb-2">No hay productos en este IPV</p>
-                  <p className="text-sm text-blue-600">
-                    Agrega productos usando el botón "Agregar Producto".
+                <Card className="p-4 sm:p-6 text-center">
+                  <Package className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-gray-400 mb-3 sm:mb-4" />
+                  <p className="text-gray-600 mb-2 text-sm sm:text-base">No hay productos en este IPV</p>
+                  <p className="text-xs sm:text-sm text-blue-600">
+                    Agrega productos usando el botón "Agregar".
                   </p>
                 </Card>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-2 sm:gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {ipvProducts.map((product) => (
                     <Card key={product.id}>
-                      <CardHeader>
-                        <CardTitle className="text-lg">{product.name}</CardTitle>
+                      <CardHeader className="p-3 sm:p-4 pb-2">
+                        <CardTitle className="text-sm sm:text-base md:text-lg truncate">{product.name}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-2">
                         <p className="text-2xl font-bold text-blue-600">${formatCurrency(product.price)}</p>
@@ -267,7 +269,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                             Quedan: {product.current_stock}
                           </Badge>
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-xs sm:text-sm text-gray-600">
                           Vendidos: <span className="font-semibold text-green-600">
                             {product.initial_stock - product.current_stock}
                           </span>
@@ -295,35 +297,35 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 
   // Main dashboard view - list of IPVs
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
-            <p className="text-sm text-gray-500">{profile.email}</p>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 truncate">Panel de Administración</h1>
+            <p className="text-xs sm:text-sm text-gray-500 truncate">{profile.email}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Cerrar Sesión
+          <Button variant="outline" onClick={handleLogout} size="sm" className="shrink-0 h-8 sm:h-9 px-2 sm:px-3">
+            <LogOut className="h-4 w-4" />
+            <span className="hidden sm:inline sm:ml-2">Salir</span>
           </Button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Mis Inventarios (IPVs)</h2>
+      <div className="max-w-7xl mx-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold">Mis Inventarios (IPVs)</h2>
           <Dialog open={isIPVDialogOpen} onOpenChange={(open) => {
             setIsIPVDialogOpen(open)
             if (!open) setSelectedUserId("")
           }}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo IPV
+              <Button className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
+                <Plus className="h-4 w-4" />
+                <span className="ml-1">Nuevo</span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Crear Nuevo IPV</DialogTitle>
               </DialogHeader>
@@ -356,15 +358,15 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
         </div>
 
         {ipvs.length === 0 ? (
-          <Card className="p-6 text-center">
-            <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-600 mb-4">No se encontraron IPVs.</p>
-            <p className="text-sm text-blue-600">
-              Crea un nuevo IPV usando el botón "Nuevo IPV" para comenzar.
+          <Card className="p-4 sm:p-6 text-center">
+            <Package className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-gray-400 mb-3 sm:mb-4" />
+            <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">No se encontraron IPVs.</p>
+            <p className="text-xs sm:text-sm text-blue-600">
+              Crea un nuevo IPV usando el botón "Nuevo" para comenzar.
             </p>
           </Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {ipvs.map((ipv) => {
               const ipvProductCount = products.filter((p) => p.ipv_id === ipv.id).length
               const ipvTotalStock = products
@@ -377,11 +379,11 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                   className="cursor-pointer hover:shadow-lg transition-shadow"
                   onClick={() => setSelectedIPV(ipv)}
                 >
-                  <CardHeader className="flex flex-row items-start justify-between space-y-0">
-                    <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Package className="h-5 w-5 text-blue-600" />
-                        {ipv.name}
+                  <CardHeader className="flex flex-row items-start justify-between space-y-0 p-3 sm:p-4 pb-2">
+                    <div className="min-w-0 flex-1 pr-2">
+                      <CardTitle className="text-sm sm:text-base md:text-lg flex items-center gap-2">
+                        <Package className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 shrink-0" />
+                        <span className="truncate">{ipv.name}</span>
                       </CardTitle>
                     </div>
                     <AlertDialog>
@@ -389,22 +391,22 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7 sm:h-8 sm:w-8 shrink-0"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                      <AlertDialogContent onClick={(e) => e.stopPropagation()} className="max-w-[calc(100vw-2rem)] sm:max-w-md">
                         <AlertDialogHeader>
                           <AlertDialogTitle>¿Eliminar IPV?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Esta acción eliminará permanentemente el IPV "{ipv.name}" y todos sus productos asociados.
+                            Esta acción eliminará permanentemente el IPV &quot;{ipv.name}&quot; y todos sus productos asociados.
                             Esta acción no se puede deshacer.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                          <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-red-600 hover:bg-red-700"
                             onClick={(e) => {
@@ -418,13 +420,13 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                       </AlertDialogContent>
                     </AlertDialog>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Badge variant="secondary">{ipv.profiles?.email || "Sin asignar"}</Badge>
-                    <div className="flex gap-4 text-sm text-gray-600">
+                  <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-4 pt-0">
+                    <Badge variant="secondary" className="max-w-full truncate block text-xs">{ipv.profiles?.email || "Sin asignar"}</Badge>
+                    <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
                       <span>Productos: <span className="font-semibold">{ipvProductCount}</span></span>
                       <span>Stock: <span className="font-semibold">{ipvTotalStock}</span></span>
                     </div>
-                    <Button className="w-full" variant="outline">
+                    <Button className="w-full h-8 sm:h-9 text-xs sm:text-sm" variant="outline">
                       Ver Detalles
                     </Button>
                   </CardContent>
@@ -489,29 +491,29 @@ function IPVReportsSection({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Estadísticas de {ipvName}</h2>
+      <h2 className="text-lg sm:text-xl font-semibold">Estadísticas de {ipvName}</h2>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <CardHeader>
-            <CardTitle>Total Efectivo</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm sm:text-base">Total Efectivo</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">${formatCurrency(totalCash)}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardHeader>
-            <CardTitle>Total Transferencia</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm sm:text-base">Total Transferencia</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">${formatCurrency(totalTransfer)}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-          <CardHeader>
-            <CardTitle>Total General</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm sm:text-base">Total General</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">${formatCurrency(totalGeneral)}</p>
@@ -522,23 +524,23 @@ function IPVReportsSection({
       {/* Detailed Product Reports */}
       <Card>
         <CardHeader>
-          <CardTitle>Reporte Detallado por Producto</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Reporte Detallado por Producto</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           {products.length === 0 ? (
             <p className="text-center text-gray-500 py-4">No hay productos en este IPV</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[600px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="p-3 text-left font-semibold">Producto</th>
-                    <th className="p-3 text-right font-semibold">Total Vendido</th>
-                    <th className="p-3 text-right font-semibold">Efectivo (Cant.)</th>
-                    <th className="p-3 text-right font-semibold">Efectivo ($)</th>
-                    <th className="p-3 text-right font-semibold">Transfer. (Cant.)</th>
-                    <th className="p-3 text-right font-semibold">Transfer. ($)</th>
-                    <th className="p-3 text-right font-semibold">Total ($)</th>
+                    <th className="p-2 sm:p-3 text-left font-semibold whitespace-nowrap">Producto</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Vendido</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Efec. (Cant.)</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Efec. ($)</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Trans. (Cant.)</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Trans. ($)</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Total ($)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -563,35 +565,35 @@ function IPVReportsSection({
       {/* Sales History with Exact Timestamps */}
       <Card>
         <CardHeader>
-          <CardTitle>Historial de Ventas</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Historial de Ventas</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           {sortedSales.length === 0 ? (
             <p className="text-center text-gray-500 py-4">No hay ventas registradas en este IPV</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[500px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="p-3 text-left font-semibold">Fecha y Hora</th>
-                    <th className="p-3 text-left font-semibold">Producto</th>
-                    <th className="p-3 text-center font-semibold">Cantidad</th>
-                    <th className="p-3 text-center font-semibold">Método de Pago</th>
-                    <th className="p-3 text-right font-semibold">Total</th>
+                    <th className="p-2 sm:p-3 text-left font-semibold whitespace-nowrap">Fecha y Hora</th>
+                    <th className="p-2 sm:p-3 text-left font-semibold whitespace-nowrap">Producto</th>
+                    <th className="p-2 sm:p-3 text-center font-semibold whitespace-nowrap">Cant.</th>
+                    <th className="p-2 sm:p-3 text-center font-semibold whitespace-nowrap">Pago</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedSales.map((sale) => (
                     <tr key={sale.id} className="border-t hover:bg-gray-50">
-                      <td className="p-3 text-gray-600">{formatDateTime(sale.created_at)}</td>
-                      <td className="p-3 font-medium">{sale.products?.name || "Producto desconocido"}</td>
-                      <td className="p-3 text-center">{sale.quantity}</td>
-                      <td className="p-3 text-center">
+                      <td className="p-2 sm:p-3 text-gray-600 whitespace-nowrap text-xs sm:text-sm">{formatDateTime(sale.created_at)}</td>
+                      <td className="p-2 sm:p-3 font-medium">{sale.products?.name || "Producto desconocido"}</td>
+                      <td className="p-2 sm:p-3 text-center">{sale.quantity}</td>
+                      <td className="p-2 sm:p-3 text-center">
                         <Badge 
                           variant={sale.payment_method === "cash" ? "default" : "secondary"}
                           className={sale.payment_method === "cash" ? "bg-green-500" : "bg-blue-500"}
                         >
-                          {sale.payment_method === "cash" ? "Efectivo" : "Transferencia"}
+                          {sale.payment_method === "cash" ? "Efec." : "Trans."}
                         </Badge>
                       </td>
                       <td className="p-3 text-right font-semibold">${formatCurrency(Number(sale.total_amount))}</td>
