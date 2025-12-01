@@ -3,11 +3,11 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Package, LogOut } from "lucide-react"
+import { Package, LogOut, Loader2 } from "lucide-react"
 import { SalesInterface } from "@/components/sales-interface"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
-import type { IPVWithProducts } from "@/lib/types"
+import type { IPVWithProducts, Product } from "@/lib/types"
 
 export function IPVSelector({
   ipvsWithProducts,
@@ -17,6 +17,7 @@ export function IPVSelector({
   userId: string
 }) {
   const [selectedIPV, setSelectedIPV] = useState<IPVWithProducts | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -24,6 +25,30 @@ export function IPVSelector({
     await supabase.auth.signOut()
     router.push("/auth/login")
     router.refresh()
+  }
+
+  // Fetch fresh products from the database when selecting an IPV
+  const handleSelectIPV = async (ipvData: IPVWithProducts) => {
+    setIsLoading(true)
+    try {
+      // Fetch fresh products from the database
+      const { data: freshProducts } = await supabase
+        .from("products")
+        .select("*")
+        .eq("ipv_id", ipvData.ipv.id)
+        .order("name")
+
+      setSelectedIPV({
+        ipv: ipvData.ipv,
+        products: (freshProducts || []) as Product[]
+      })
+    } catch (error) {
+      console.error("Error loading products:", error)
+      // Fallback to cached products if fetch fails
+      setSelectedIPV(ipvData)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // If user selected an IPV, show the sales interface
@@ -55,6 +80,14 @@ export function IPVSelector({
       </div>
 
       <div className="p-4">
+        {isLoading && (
+          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+            <div className="bg-white p-4 rounded-lg flex items-center gap-3 shadow-lg">
+              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+              <span className="text-gray-700">Cargando productos...</span>
+            </div>
+          </div>
+        )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {ipvsWithProducts.map(({ ipv, products }) => {
             const totalProducts = products.length
@@ -63,8 +96,8 @@ export function IPVSelector({
             return (
               <Card
                 key={ipv.id}
-                className="cursor-pointer hover:shadow-lg transition-shadow bg-white"
-                onClick={() => setSelectedIPV({ ipv, products })}
+                className={`cursor-pointer hover:shadow-lg transition-shadow bg-white ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+                onClick={() => handleSelectIPV({ ipv, products })}
               >
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
