@@ -176,31 +176,30 @@ export function GuestSalesInterface() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="px-4 flex gap-2 mb-4">
-        <Button
-          variant={activeTab === "products" ? "default" : "outline"}
-          onClick={() => setActiveTab("products")}
-          className="flex-1"
-          size="sm"
-        >
-          Productos
-        </Button>
-        <Button
-          variant={activeTab === "stats" ? "default" : "outline"}
-          onClick={() => setActiveTab("stats")}
-          className="flex-1"
-          size="sm"
-        >
-          Estadísticas
-        </Button>
-        <Button
-          variant={activeTab === "bills" ? "default" : "outline"}
-          onClick={() => setActiveTab("bills")}
-          className="flex-1"
-          size="sm"
-        >
-          Billetes
-        </Button>
+      <div className="px-4 mb-4 overflow-x-auto">
+        <div className="flex gap-2 min-w-max">
+          <Button
+            variant={activeTab === "products" ? "default" : "outline"}
+            onClick={() => setActiveTab("products")}
+            size="sm"
+          >
+            Productos
+          </Button>
+          <Button
+            variant={activeTab === "stats" ? "default" : "outline"}
+            onClick={() => setActiveTab("stats")}
+            size="sm"
+          >
+            Estadísticas
+          </Button>
+          <Button
+            variant={activeTab === "bills" ? "default" : "outline"}
+            onClick={() => setActiveTab("bills")}
+            size="sm"
+          >
+            Billetes
+          </Button>
+        </div>
       </div>
 
       <div className="px-4 pb-4">
@@ -448,11 +447,11 @@ export function GuestSalesInterface() {
               <CardContent>
                 <div className="space-y-3">
                   {bills.map((bill) => (
-                    <div key={bill.denomination} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                      <div className="w-16 text-center">
-                        <span className="font-bold text-gray-700">${bill.denomination}</span>
+                  <div key={bill.denomination} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                      <div className="w-14 flex-shrink-0 text-center">
+                        <span className="font-bold text-gray-700 text-sm">${bill.denomination}</span>
                       </div>
-                      <div className="flex items-center gap-2 flex-1">
+                      <div className="flex items-center gap-1 flex-shrink-0">
                         <Button
                           variant="outline"
                           size="icon"
@@ -470,7 +469,7 @@ export function GuestSalesInterface() {
                               updateBillCount(bill.denomination, 0)
                             }
                           }}
-                          className="w-20 text-center"
+                          className="w-16 text-center"
                           min="0"
                           placeholder="0"
                         />
@@ -483,9 +482,9 @@ export function GuestSalesInterface() {
                           +
                         </Button>
                       </div>
-                      <div className="w-24 text-right">
-                        <span className="font-medium text-green-600">
-                          ${(bill.denomination * bill.count).toFixed(2)}
+                      <div className="flex-1 text-right min-w-0">
+                        <span className="font-medium text-green-600 text-sm truncate block">
+                          ${(bill.denomination * bill.count).toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -499,7 +498,7 @@ export function GuestSalesInterface() {
               <CardContent className="p-4">
                 <div className="text-center">
                   <p className="text-lg opacity-90">Total en Billetes</p>
-                  <p className="text-4xl font-bold">${totalBills.toFixed(2)}</p>
+                  <p className="text-4xl font-bold">${totalBills.toLocaleString()}</p>
                   <p className="text-sm opacity-75 mt-2">
                     {bills.reduce((sum, b) => sum + b.count, 0)} billetes totales
                   </p>
@@ -516,7 +515,7 @@ export function GuestSalesInterface() {
                     <div className="flex items-center justify-center gap-4">
                       <div>
                         <p className="text-xs text-gray-500">Billetes</p>
-                        <p className="font-bold text-green-600">${totalBills.toFixed(2)}</p>
+                        <p className="font-bold text-green-600">${totalBills.toLocaleString()}</p>
                       </div>
                       <span className="text-gray-400">vs</span>
                       <div>
@@ -529,7 +528,7 @@ export function GuestSalesInterface() {
                     >
                       {totalBills === totalCash
                         ? "Los montos coinciden"
-                        : `Diferencia: $${Math.abs(totalBills - totalCash).toFixed(2)}`}
+                        : `Diferencia: $${Math.abs(totalBills - totalCash).toLocaleString()}`}
                     </div>
                   </div>
                 </CardContent>
