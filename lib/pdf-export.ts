@@ -1,6 +1,13 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
+// Extend jsPDF type to include lastAutoTable property added by jspdf-autotable
+interface jsPDFWithAutoTable extends jsPDF {
+  lastAutoTable: {
+    finalY: number
+  }
+}
+
 interface AutoTableOptions {
   head?: (string | number)[][]
   body?: (string | number)[][]
@@ -50,7 +57,7 @@ function formatCurrencyForPdf(amount: number): string {
 }
 
 export function exportReportToPDF(data: ReportData): void {
-  const doc = new jsPDF()
+  const doc = new jsPDF() as jsPDFWithAutoTable
   const pageWidth = doc.internal.pageSize.getWidth()
   
   // Title
@@ -108,7 +115,7 @@ export function exportReportToPDF(data: ReportData): void {
       margin: { left: 14 }
     })
     
-    currentY = (doc as any).lastAutoTable.finalY + 15
+    currentY = doc.lastAutoTable.finalY + 15
   }
   
   // Bill Denominations Table
@@ -143,7 +150,7 @@ export function exportReportToPDF(data: ReportData): void {
       margin: { left: 14 }
     })
     
-    currentY = (doc as any).lastAutoTable.finalY + 15
+    currentY = doc.lastAutoTable.finalY + 15
   }
   
   // Sales History Table
