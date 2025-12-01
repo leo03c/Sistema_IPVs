@@ -27,8 +27,10 @@ type IPV = {
   id: string
   name: string
   user_id: string
+  created_by?: string
   status?: 'open' | 'closed'
   profiles?: { email: string }
+  created_by_profile?: { email: string }
 }
 
 type Product = {
@@ -445,7 +447,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
             <IPVReportsSection 
               sales={ipvSales} 
               products={ipvProducts} 
-              ipvName={selectedIPV.name}
+              ipv={selectedIPV}
             />
           )}
         </div>
@@ -621,11 +623,11 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 function IPVReportsSection({ 
   sales, 
   products, 
-  ipvName 
+  ipv
 }: { 
   sales: Sale[]
   products: Product[]
-  ipvName: string
+  ipv: IPV
 }) {
   // Bill denominations (local state for admin to track)
   const [bills, setBills] = useState<BillCount[]>([
@@ -688,7 +690,9 @@ function IPVReportsSection({
   // Export to PDF function
   const handleExportPDF = () => {
     const reportData: ReportData = {
-      ipvName,
+      ipvName: ipv.name,
+      assignedUserEmail: ipv.profiles?.email,
+      createdByEmail: ipv.created_by_profile?.email,
       totalCash,
       totalTransfer,
       totalGeneral,
@@ -708,7 +712,7 @@ function IPVReportsSection({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg sm:text-xl font-semibold">Estadísticas de {ipvName}</h2>
+        <h2 className="text-lg sm:text-xl font-semibold">Estadísticas de {ipv.name}</h2>
         <Button onClick={handleExportPDF} className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
           <FileDown className="h-4 w-4" />
           <span className="ml-1">Exportar PDF</span>

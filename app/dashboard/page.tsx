@@ -38,7 +38,7 @@ export default async function DashboardPage() {
     // RLS policies (from 005-fix-admin-view-all.sql) should allow admin access
     const { data: ipvsData, error: ipvsError } = await supabase
       .from("ipvs")
-      .select("*, profiles!ipvs_user_id_fkey(email)")
+      .select("*, profiles!ipvs_user_id_fkey(email), created_by_profile:profiles!ipvs_created_by_fkey(email)")
       .order("created_at", { ascending: false })
 
     if (ipvsError) {
@@ -160,7 +160,11 @@ export default async function DashboardPage() {
   }
 
   // Get ALL IPVs assigned to this user (not just one)
-  const { data: ipvs } = await supabase.from("ipvs").select("*").eq("user_id", user.id).order("name")
+  const { data: ipvs } = await supabase
+    .from("ipvs")
+    .select("*, profiles!ipvs_user_id_fkey(email), created_by_profile:profiles!ipvs_created_by_fkey(email)")
+    .eq("user_id", user.id)
+    .order("name")
 
   if (!ipvs || ipvs.length === 0) {
     return (
