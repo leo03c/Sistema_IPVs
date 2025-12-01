@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Package, LogOut, Loader2 } from "lucide-react"
@@ -19,6 +19,8 @@ export function IPVSelector({
 }) {
   const [selectedIPV, setSelectedIPV] = useState<IPVWithProducts | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  // Track refreshed products state to show updated stock counts
+  const [refreshedProducts, setRefreshedProducts] = useState<Map<string, Product[]>>(new Map())
   const router = useRouter()
   const supabase = createClient()
 
@@ -39,9 +41,14 @@ export function IPVSelector({
         .eq("ipv_id", ipvData.ipv.id)
         .order("name")
 
+      const products = (freshProducts || []) as Product[]
+      
+      // Update refreshed products cache
+      setRefreshedProducts(prev => new Map(prev).set(ipvData.ipv.id, products))
+      
       setSelectedIPV({
         ipv: ipvData.ipv,
-        products: (freshProducts || []) as Product[]
+        products
       })
     } catch (error) {
       console.error("Error loading products:", error)
@@ -52,6 +59,41 @@ export function IPVSelector({
     }
   }
 
+  // Handle going back from SalesInterface - refresh products for all IPVs
+  const handleBack = useCallback(async () => {
+    setIsLoading(true)
+    setSelectedIPV(null)
+    
+    try {
+      // Fetch fresh products for all IPVs to update stock counts
+      const ipvIds = ipvsWithProducts.map(({ ipv }) => ipv.id)
+      const { data: freshProducts } = await supabase
+        .from("products")
+        .select("*")
+        .in("ipv_id", ipvIds)
+        .order("name")
+
+      if (freshProducts) {
+        // Group products by IPV ID
+        const productsByIpv = new Map<string, Product[]>()
+        for (const product of freshProducts as Product[]) {
+          const ipvId = product.ipv_id
+          if (ipvId) {
+            if (!productsByIpv.has(ipvId)) {
+              productsByIpv.set(ipvId, [])
+            }
+            productsByIpv.get(ipvId)!.push(product)
+          }
+        }
+        setRefreshedProducts(productsByIpv)
+      }
+    } catch (error) {
+      console.error("Error refreshing products:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [ipvsWithProducts, supabase])
+
   // If user selected an IPV, show the sales interface
   if (selectedIPV) {
     return (
@@ -59,7 +101,7 @@ export function IPVSelector({
         ipv={selectedIPV.ipv}
         initialProducts={selectedIPV.products}
         userId={userId}
-        onBack={() => setSelectedIPV(null)}
+        onBack={handleBack}
       />
     )
   }
@@ -95,7 +137,9 @@ export function IPVSelector({
           </div>
         )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {ipvsWithProducts.map(({ ipv, products }) => {
+          {ipvsWithProducts.map(({ ipv, products: initialProducts }) => {
+            // Use refreshed products if available, otherwise use initial products
+            const products = refreshedProducts.get(ipv.id) || initialProducts
             const totalProducts = products.length
             const totalStock = products.reduce((sum, p) => sum + p.current_stock, 0)
             
