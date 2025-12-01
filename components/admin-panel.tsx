@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3 } from "lucide-react"
+import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3, Edit2, Lock, LockOpen } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
 
@@ -26,6 +26,7 @@ type IPV = {
   id: string
   name: string
   user_id: string
+  status?: 'open' | 'closed'
   profiles?: { email: string }
 }
 
@@ -63,6 +64,8 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const sales = initialSales // Read-only, no state needed
   const [isIPVDialogOpen, setIsIPVDialogOpen] = useState(false)
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
+  const [isEditProductDialogOpen, setIsEditProductDialogOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [selectedUserId, setSelectedUserId] = useState<string>("")
   const [selectedIPV, setSelectedIPV] = useState<IPV | null>(null)
   const [activeTab, setActiveTab] = useState<"products" | "reports">("products")
@@ -144,6 +147,46 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
     router.refresh()
   }
 
+  // Toggle IPV status between open and closed
+  const toggleIPVStatus = async (ipvId: string, currentStatus: 'open' | 'closed') => {
+    const newStatus = currentStatus === 'open' ? 'closed' : 'open'
+    const { error } = await supabase.from("ipvs").update({ status: newStatus }).eq("id", ipvId)
+
+    if (!error) {
+      setIpvs(ipvs.map((ipv) => ipv.id === ipvId ? { ...ipv, status: newStatus } : ipv))
+      if (selectedIPV && selectedIPV.id === ipvId) {
+        setSelectedIPV({ ...selectedIPV, status: newStatus })
+      }
+    } else {
+      console.error("Error toggling IPV status:", error)
+      alert("Error al cambiar el estado del IPV: " + error.message)
+    }
+  }
+
+  // Delete a product
+  const deleteProduct = async (productId: string) => {
+    const { error } = await supabase.from("products").delete().eq("id", productId)
+
+    if (!error) {
+      setProducts(products.filter((p) => p.id !== productId))
+    } else {
+      console.error("Error deleting product:", error)
+      alert("Error al eliminar el producto: " + error.message)
+    }
+  }
+
+  // Update a product
+  const updateProduct = async (productId: string, updates: { name?: string; price?: number; initial_stock?: number; current_stock?: number }) => {
+    const { error } = await supabase.from("products").update(updates).eq("id", productId)
+
+    if (!error) {
+      setProducts(products.map((p) => p.id === productId ? { ...p, ...updates } : p))
+    } else {
+      console.error("Error updating product:", error)
+      alert("Error al actualizar el producto: " + error.message)
+    }
+  }
+
   // Get products for selected IPV
   const ipvProducts = selectedIPV ? products.filter((p) => p.ipv_id === selectedIPV.id) : []
   // Get sales for selected IPV
@@ -164,16 +207,32 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                 <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
               <div className="min-w-0 flex-1">
-                <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 truncate">{selectedIPV.name}</h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 truncate">{selectedIPV.name}</h1>
+                  <Badge variant={selectedIPV.status === 'open' ? 'default' : 'secondary'} className={selectedIPV.status === 'open' ? 'bg-green-500' : 'bg-gray-500'}>
+                    {selectedIPV.status === 'open' ? 'Abierto' : 'Cerrado'}
+                  </Badge>
+                </div>
                 <p className="text-xs sm:text-sm text-gray-500 truncate">
                   Asignado a: {selectedIPV.profiles?.email || "Sin asignar"}
                 </p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleLogout} size="sm" className="shrink-0 h-8 sm:h-9 px-2 sm:px-3">
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline sm:ml-2">Salir</span>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => toggleIPVStatus(selectedIPV.id, selectedIPV.status || 'open')}
+                className={`shrink-0 h-8 sm:h-9 px-2 sm:px-3 ${selectedIPV.status === 'open' ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+              >
+                {selectedIPV.status === 'open' ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
+                <span className="hidden sm:inline sm:ml-2">{selectedIPV.status === 'open' ? 'Cerrar' : 'Abrir'}</span>
+              </Button>
+              <Button variant="outline" onClick={handleLogout} size="sm" className="shrink-0 h-8 sm:h-9 px-2 sm:px-3">
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline sm:ml-2">Salir</span>
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -258,10 +317,52 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                 <div className="grid gap-2 sm:gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {ipvProducts.map((product) => (
                     <Card key={product.id}>
-                      <CardHeader className="p-3 sm:p-4 pb-2">
-                        <CardTitle className="text-sm sm:text-base md:text-lg truncate">{product.name}</CardTitle>
+                      <CardHeader className="p-3 sm:p-4 pb-2 flex flex-row items-start justify-between space-y-0">
+                        <CardTitle className="text-sm sm:text-base md:text-lg truncate flex-1 pr-2">{product.name}</CardTitle>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={() => {
+                              setEditingProduct(product)
+                              setIsEditProductDialogOpen(true)
+                            }}
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Eliminar Producto?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción eliminará permanentemente el producto &quot;{product.name}&quot; y todas sus ventas asociadas.
+                                  Esta acción no se puede deshacer.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                                <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700"
+                                  onClick={() => deleteProduct(product.id)}
+                                >
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </CardHeader>
-                      <CardContent className="space-y-2">
+                      <CardContent className="space-y-2 p-3 sm:p-4 pt-0">
                         <p className="text-2xl font-bold text-blue-600">${formatCurrency(product.price)}</p>
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Stock Inicial: {product.initial_stock}</span>
@@ -279,6 +380,62 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                   ))}
                 </div>
               )}
+
+              {/* Edit Product Dialog */}
+              <Dialog open={isEditProductDialogOpen} onOpenChange={(open) => {
+                setIsEditProductDialogOpen(open)
+                if (!open) setEditingProduct(null)
+              }}>
+                <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-base sm:text-lg">Editar Producto</DialogTitle>
+                  </DialogHeader>
+                  {editingProduct && (
+                    <form onSubmit={(e) => {
+                      e.preventDefault()
+                      const formData = new FormData(e.currentTarget)
+                      const name = formData.get("name")
+                      const price = formData.get("price")
+                      const initialStock = formData.get("initial_stock")
+                      const currentStock = formData.get("current_stock")
+                      
+                      if (!name || !price || !initialStock || !currentStock) {
+                        alert("Por favor completa todos los campos")
+                        return
+                      }
+                      
+                      updateProduct(editingProduct.id, {
+                        name: name as string,
+                        price: Number.parseFloat(price as string),
+                        initial_stock: Number.parseInt(initialStock as string),
+                        current_stock: Number.parseInt(currentStock as string),
+                      })
+                      setIsEditProductDialogOpen(false)
+                      setEditingProduct(null)
+                    }} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_product_name">Nombre del Producto</Label>
+                        <Input id="edit_product_name" name="name" defaultValue={editingProduct.name} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_price">Precio</Label>
+                        <Input id="edit_price" name="price" type="number" step="0.01" min="0" defaultValue={editingProduct.price} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_initial_stock">Stock Inicial</Label>
+                        <Input id="edit_initial_stock" name="initial_stock" type="number" min="0" defaultValue={editingProduct.initial_stock} required />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit_current_stock">Stock Actual</Label>
+                        <Input id="edit_current_stock" name="current_stock" type="number" min="0" defaultValue={editingProduct.current_stock} required />
+                      </div>
+                      <Button type="submit" className="w-full">
+                        Guardar Cambios
+                      </Button>
+                    </form>
+                  )}
+                </DialogContent>
+              </Dialog>
             </div>
           )}
 
@@ -386,6 +543,19 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                         <span className="truncate">{ipv.name}</span>
                       </CardTitle>
                     </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-7 w-7 sm:h-8 sm:w-8 shrink-0 ${ipv.status === 'open' ? 'text-orange-500 hover:text-orange-700 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleIPVStatus(ipv.id, ipv.status || 'open')
+                        }}
+                        title={ipv.status === 'open' ? 'Cerrar IPV' : 'Abrir IPV'}
+                      >
+                        {ipv.status === 'open' ? <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <LockOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
+                      </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -419,9 +589,15 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-4 pt-0">
-                    <Badge variant="secondary" className="max-w-full truncate block text-xs">{ipv.profiles?.email || "Sin asignar"}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="truncate text-xs flex-1">{ipv.profiles?.email || "Sin asignar"}</Badge>
+                      <Badge variant={ipv.status === 'open' ? 'default' : 'secondary'} className={`text-xs shrink-0 ${ipv.status === 'open' ? 'bg-green-500' : 'bg-gray-500'}`}>
+                        {ipv.status === 'open' ? 'Abierto' : 'Cerrado'}
+                      </Badge>
+                    </div>
                     <div className="flex flex-wrap gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
                       <span>Productos: <span className="font-semibold">{ipvProductCount}</span></span>
                       <span>Stock: <span className="font-semibold">{ipvTotalStock}</span></span>
