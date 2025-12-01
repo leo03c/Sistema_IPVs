@@ -7,6 +7,7 @@ import { Package, LogOut, Loader2 } from "lucide-react"
 import { SalesInterface } from "@/components/sales-interface"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 import type { IPVWithProducts, Product } from "@/lib/types"
 
 export function IPVSelector({
@@ -81,7 +82,12 @@ export function IPVSelector({
 
       <div className="p-4">
         {isLoading && (
-          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+          <div 
+            className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
+            role="dialog"
+            aria-label="Cargando productos"
+            aria-live="polite"
+          >
             <div className="bg-white p-4 rounded-lg flex items-center gap-3 shadow-lg">
               <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
               <span className="text-gray-700">Cargando productos...</span>
@@ -96,7 +102,10 @@ export function IPVSelector({
             return (
               <Card
                 key={ipv.id}
-                className={`cursor-pointer hover:shadow-lg transition-shadow bg-white ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
+                className={cn(
+                  "cursor-pointer hover:shadow-lg transition-shadow bg-white",
+                  isLoading && "pointer-events-none opacity-50"
+                )}
                 onClick={() => handleSelectIPV({ ipv, products })}
               >
                 <CardHeader>
