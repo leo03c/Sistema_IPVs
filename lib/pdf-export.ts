@@ -86,11 +86,10 @@ export function exportReportToPDF(data: ReportData): void {
   if (data.assignedUserEmail) {
     doc.text(`Usuario Asignado: ${data.assignedUserEmail}`, pageWidth / 2, currentY, { align: 'center' })
     currentY += LINE_HEIGHT
-  }
-  if (data.createdByEmail) {
     doc.text(`Creado por: ${data.createdByEmail}`, pageWidth / 2, currentY, { align: 'center' })
     currentY += LINE_HEIGHT
   }
+  
   
   // Summary section
   doc.setFontSize(14)
