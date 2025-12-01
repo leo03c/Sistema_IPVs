@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge"
 import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { formatCurrency } from "@/lib/utils"
 
 type Profile = {
   id: string
@@ -260,11 +261,11 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                       <CardHeader className="p-3 sm:p-4 pb-2">
                         <CardTitle className="text-sm sm:text-base md:text-lg truncate">{product.name}</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-2 p-3 sm:p-4 pt-0">
-                        <p className="text-lg sm:text-xl md:text-2xl font-bold text-blue-600">${product.price.toFixed(2)}</p>
-                        <div className="flex flex-wrap justify-between gap-1 text-xs sm:text-sm">
-                          <span className="text-gray-600">Inicial: {product.initial_stock}</span>
-                          <Badge variant={product.current_stock > 5 ? "default" : "destructive"} className="text-xs">
+                      <CardContent className="space-y-2">
+                        <p className="text-2xl font-bold text-blue-600">${formatCurrency(product.price)}</p>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Stock Inicial: {product.initial_stock}</span>
+                          <Badge variant={product.current_stock > 5 ? "default" : "destructive"}>
                             Quedan: {product.current_stock}
                           </Badge>
                         </div>
@@ -499,7 +500,7 @@ function IPVReportsSection({
             <CardTitle className="text-sm sm:text-base">Total Efectivo</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl sm:text-3xl font-bold">${totalCash.toFixed(2)}</p>
+            <p className="text-3xl font-bold">${formatCurrency(totalCash)}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
@@ -507,7 +508,7 @@ function IPVReportsSection({
             <CardTitle className="text-sm sm:text-base">Total Transferencia</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl sm:text-3xl font-bold">${totalTransfer.toFixed(2)}</p>
+            <p className="text-3xl font-bold">${formatCurrency(totalTransfer)}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
@@ -515,7 +516,7 @@ function IPVReportsSection({
             <CardTitle className="text-sm sm:text-base">Total General</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl sm:text-3xl font-bold">${totalGeneral.toFixed(2)}</p>
+            <p className="text-3xl font-bold">${formatCurrency(totalGeneral)}</p>
           </CardContent>
         </Card>
       </div>
@@ -545,13 +546,13 @@ function IPVReportsSection({
                 <tbody>
                   {productStats.map((stat, idx) => (
                     <tr key={idx} className="border-t">
-                      <td className="p-2 sm:p-3 font-medium">{stat.name}</td>
-                      <td className="p-2 sm:p-3 text-right">{stat.totalSold}</td>
-                      <td className="p-2 sm:p-3 text-right text-green-600">{stat.cashQuantity}</td>
-                      <td className="p-2 sm:p-3 text-right text-green-600 font-semibold">${stat.cashAmount.toFixed(2)}</td>
-                      <td className="p-2 sm:p-3 text-right text-blue-600">{stat.transferQuantity}</td>
-                      <td className="p-2 sm:p-3 text-right text-blue-600 font-semibold">${stat.transferAmount.toFixed(2)}</td>
-                      <td className="p-2 sm:p-3 text-right font-bold">${(stat.cashAmount + stat.transferAmount).toFixed(2)}</td>
+                      <td className="p-3 font-medium">{stat.name}</td>
+                      <td className="p-3 text-right">{stat.totalSold}</td>
+                      <td className="p-3 text-right text-green-600">{stat.cashQuantity}</td>
+                      <td className="p-3 text-right text-green-600 font-semibold">${formatCurrency(stat.cashAmount)}</td>
+                      <td className="p-3 text-right text-blue-600">{stat.transferQuantity}</td>
+                      <td className="p-3 text-right text-blue-600 font-semibold">${formatCurrency(stat.transferAmount)}</td>
+                      <td className="p-3 text-right font-bold">${formatCurrency(stat.cashAmount + stat.transferAmount)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -595,7 +596,7 @@ function IPVReportsSection({
                           {sale.payment_method === "cash" ? "Efec." : "Trans."}
                         </Badge>
                       </td>
-                      <td className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">${Number(sale.total_amount).toFixed(2)}</td>
+                      <td className="p-3 text-right font-semibold">${formatCurrency(Number(sale.total_amount))}</td>
                     </tr>
                   ))}
                 </tbody>
