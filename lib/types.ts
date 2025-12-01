@@ -12,7 +12,7 @@ export type IPV = {
   id: string
   name: string
   description: string
-  status: 'open' | 'closed'
+  status?: 'open' | 'closed'
 }
 
 export type Sale = {

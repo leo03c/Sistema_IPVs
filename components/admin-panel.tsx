@@ -26,7 +26,7 @@ type IPV = {
   id: string
   name: string
   user_id: string
-  status: 'open' | 'closed'
+  status?: 'open' | 'closed'
   profiles?: { email: string }
 }
 
@@ -394,11 +394,21 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                     <form onSubmit={(e) => {
                       e.preventDefault()
                       const formData = new FormData(e.currentTarget)
+                      const name = formData.get("name")
+                      const price = formData.get("price")
+                      const initialStock = formData.get("initial_stock")
+                      const currentStock = formData.get("current_stock")
+                      
+                      if (!name || !price || !initialStock || !currentStock) {
+                        alert("Por favor completa todos los campos")
+                        return
+                      }
+                      
                       updateProduct(editingProduct.id, {
-                        name: formData.get("name") as string,
-                        price: Number.parseFloat(formData.get("price") as string),
-                        initial_stock: Number.parseInt(formData.get("initial_stock") as string),
-                        current_stock: Number.parseInt(formData.get("current_stock") as string),
+                        name: name as string,
+                        price: Number.parseFloat(price as string),
+                        initial_stock: Number.parseInt(initialStock as string),
+                        current_stock: Number.parseInt(currentStock as string),
                       })
                       setIsEditProductDialogOpen(false)
                       setEditingProduct(null)
