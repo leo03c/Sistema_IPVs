@@ -30,7 +30,7 @@ type IPV = {
   user_id: string
   created_by?: string
   status?: 'open' | 'closed'
-  profiles?: { email: string }
+  user_profile?: { email: string }
   created_by_profile?: { email: string }
 }
 
@@ -218,7 +218,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                   </Badge>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 truncate">
-                  Asignado a: {selectedIPV.profiles?.email || "Sin asignar"}
+                  Asignado a: {selectedIPV.user_profile?.email || "Sin asignar"}
                 </p>
               </div>
             </div>
