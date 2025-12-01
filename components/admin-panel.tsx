@@ -89,7 +89,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       name: formData.get("name") as string,
       user_id: selectedUserId,
       created_by: profile.id,
-    }).select("*, profiles! ipvs_user_id_fkey(email), created_by_profile:profiles!ipvs_created_by_fkey(email)")
+    }).select("*, user_profile:profiles!user_id(email), created_by_profile:profiles!created_by(email)")
 
     if (!error && data) {
       setIpvs([data[0], ...ipvs])
@@ -597,7 +597,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                   </CardHeader>
                   <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-4 pt-0">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="truncate text-xs flex-1">{ipv.profiles?.email || "Sin asignar"}</Badge>
+                      <Badge variant="secondary" className="truncate text-xs flex-1">{ipv.user_profile?.email || "Sin asignar"}</Badge>
                       <Badge variant={ipv.status === 'open' ? 'default' : 'secondary'} className={`text-xs shrink-0 ${ipv.status === 'open' ? 'bg-green-500' : 'bg-gray-500'}`}>
                         {ipv.status === 'open' ? 'Abierto' : 'Cerrado'}
                       </Badge>
@@ -762,7 +762,7 @@ function IPVReportsSection({
   const handleExportPDF = () => {
     const reportData: ReportData = {
       ipvName: ipv.name,
-      assignedUserEmail: ipv.profiles?.email,
+      assignedUserEmail: ipv.user_profile?.email,
       createdByEmail: ipv.created_by_profile?.email,
       totalCash,
       totalTransfer,

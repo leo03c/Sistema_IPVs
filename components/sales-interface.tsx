@@ -343,7 +343,7 @@ export function SalesInterface({
 
     const reportData: ReportData = {
       ipvName: ipv.name,
-      assignedUserEmail: ipv.profiles?.email,
+      assignedUserEmail: ipv.user_profile?.email,
       createdByEmail: ipv.created_by_profile?.email,
       totalCash,
       totalTransfer,
