@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft } from "lucide-react"
+import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
@@ -249,8 +249,21 @@ export function SalesInterface({
     router.refresh()
   }
 
+  // Check if IPV is closed (read-only mode)
+  const isIPVClosed = ipv.status === 'closed'
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Closed IPV Banner */}
+      {isIPVClosed && (
+        <div className="bg-orange-100 border-b border-orange-300 px-4 py-2 flex items-center justify-center gap-2">
+          <Lock className="h-4 w-4 text-orange-600" />
+          <span className="text-sm text-orange-700 font-medium">
+            Este IPV está cerrado. Solo puedes ver la información.
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center justify-between">
@@ -261,7 +274,12 @@ export function SalesInterface({
               </Button>
             )}
             <div>
-              <h1 className="text-lg font-bold text-gray-900">{ipv.name}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-gray-900">{ipv.name}</h1>
+                <Badge variant={isIPVClosed ? 'secondary' : 'default'} className={isIPVClosed ? 'bg-gray-500' : 'bg-green-500'}>
+                  {isIPVClosed ? 'Cerrado' : 'Abierto'}
+                </Badge>
+              </div>
               <p className="text-xs text-gray-500">{ipv.description}</p>
             </div>
           </div>
@@ -345,8 +363,8 @@ export function SalesInterface({
         {/* Products Tab */}
         {activeTab === "products" && (
           <div className="space-y-4">
-            {/* Selected Products Summary - Fixed at top */}
-            {selectedProducts.size > 0 && (
+            {/* Selected Products Summary - Fixed at top (only when IPV is open) */}
+            {selectedProducts.size > 0 && !isIPVClosed && (
               <Card className="bg-purple-50 border-purple-200 sticky top-[76px] z-10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -389,15 +407,15 @@ export function SalesInterface({
                       key={product.id} 
                       className={`p-4 bg-white transition-shadow ${
                         isSelected ? 'ring-2 ring-purple-500 shadow-md' : 'hover:shadow-md'
-                      } ${product.current_stock <= 0 ? 'opacity-50' : ''}`}
+                      } ${product.current_stock <= 0 ? 'opacity-50' : ''} ${isIPVClosed ? 'opacity-75' : ''}`}
                     >
                       <div className="flex items-start gap-3">
-                        {/* Checkbox */}
+                        {/* Checkbox - disabled when IPV is closed */}
                         <div className="pt-1">
                           <Checkbox
                             checked={isSelected}
                             onCheckedChange={() => toggleProductSelection(product.id)}
-                            disabled={product.current_stock <= 0}
+                            disabled={product.current_stock <= 0 || isIPVClosed}
                             className="h-5 w-5"
                           />
                         </div>
@@ -425,8 +443,8 @@ export function SalesInterface({
                           </div>
                         </div>
                         
-                        {/* Quantity Controls (when selected) */}
-                        {isSelected && (
+                        {/* Quantity Controls (when selected) - only shown when IPV is open */}
+                        {isSelected && !isIPVClosed && (
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -516,14 +534,14 @@ export function SalesInterface({
                         ))}
                       </div>
 
-                      {/* Actions */}
+                      {/* Actions - disabled when IPV is closed */}
                       {payment.status === "pending" && (
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
                             onClick={() => cancelPendingPayment(payment.id)}
                             className="flex-1"
-                            disabled={isLoading}
+                            disabled={isLoading || isIPVClosed}
                           >
                             <Trash2 className="h-4 w-4 mr-1" />
                             Cancelar
@@ -531,7 +549,7 @@ export function SalesInterface({
                           <Button
                             onClick={() => confirmPayment(payment.id)}
                             className="flex-1 bg-green-600 hover:bg-green-700"
-                            disabled={isLoading}
+                            disabled={isLoading || isIPVClosed}
                           >
                             <Check className="h-4 w-4 mr-1" />
                             {isLoading ? "Procesando..." : "Confirmar"}

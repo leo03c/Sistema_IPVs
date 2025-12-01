@@ -3,12 +3,13 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Package, LogOut, Loader2 } from "lucide-react"
+import { Package, LogOut, Loader2, Lock, LockOpen } from "lucide-react"
 import { SalesInterface } from "@/components/sales-interface"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import type { IPVWithProducts, Product } from "@/lib/types"
+import { Badge } from "@/components/ui/badge"
 
 export function IPVSelector({
   ipvsWithProducts,
@@ -98,6 +99,7 @@ export function IPVSelector({
           {ipvsWithProducts.map(({ ipv, products }) => {
             const totalProducts = products.length
             const totalStock = products.reduce((sum, p) => sum + p.current_stock, 0)
+            const isIPVClosed = ipv.status === 'closed'
             
             return (
               <Card
@@ -111,7 +113,10 @@ export function IPVSelector({
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-blue-600" />
-                    {ipv.name}
+                    <span className="flex-1">{ipv.name}</span>
+                    <Badge variant={isIPVClosed ? 'secondary' : 'default'} className={isIPVClosed ? 'bg-gray-500' : 'bg-green-500'}>
+                      {isIPVClosed ? <><Lock className="h-3 w-3 mr-1" />Cerrado</> : <><LockOpen className="h-3 w-3 mr-1" />Abierto</>}
+                    </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
@@ -126,8 +131,8 @@ export function IPVSelector({
                       Stock Total: <span className="font-semibold">{totalStock}</span>
                     </span>
                   </div>
-                  <Button className="w-full mt-2" variant="default">
-                    Gestionar Ventas
+                  <Button className="w-full mt-2" variant={isIPVClosed ? "secondary" : "default"}>
+                    {isIPVClosed ? "Ver Información" : "Gestionar Ventas"}
                   </Button>
                 </CardContent>
               </Card>
