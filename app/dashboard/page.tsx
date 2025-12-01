@@ -34,11 +34,11 @@ export default async function DashboardPage() {
 
   // Admin view - fetch data server-side and pass as props
   if (profile.role === "admin") {
-    // Load ALL IPVs with user emails - admins should see all inventories
-    // RLS policies (from 005-fix-admin-view-all.sql) should allow admin access
+    // Load only IPVs created by this admin
     const { data: ipvsData, error: ipvsError } = await supabase
       .from("ipvs")
       .select("*, profiles!ipvs_user_id_fkey(email), created_by_profile:profiles!ipvs_created_by_fkey(email)")
+      .eq("created_by", profile.id)
       .order("created_at", { ascending: false })
 
     if (ipvsError) {
