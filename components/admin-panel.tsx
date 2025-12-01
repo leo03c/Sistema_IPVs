@@ -77,20 +77,20 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       return
     }
 
-    const { error } = await supabase.from("ipvs").insert({
+    const { data, error } = await supabase.from("ipvs").insert({
       name: formData.get("name") as string,
       user_id: selectedUserId,
       created_by: profile.id,
-    })
+    }).select("*, profiles!ipvs_user_id_fkey(email)")
 
-    if (!error) {
+    if (!error && data) {
+      setIpvs([data[0], ...ipvs])
       setIsIPVDialogOpen(false)
       setSelectedUserId("")
-      router.refresh()
       ;(e.target as HTMLFormElement).reset()
     } else {
       console.error("Error creating IPV:", error)
-      alert("Error al crear el IPV: " + error.message)
+      alert("Error al crear el IPV: " + error?.message)
     }
   }
 
