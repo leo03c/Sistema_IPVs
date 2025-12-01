@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,7 +17,6 @@ import { useRouter } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
 import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
 import { toast } from "sonner"
-import { useEffect } from "react"
 
 type Profile = {
   id: string
@@ -648,11 +647,7 @@ function IPVReportsSection({
   ])
 
   // Load denominations from database when component mounts or IPV changes
-  useEffect(() => {
-    loadDenominations()
-  }, [ipv.id])
-
-  const loadDenominations = async () => {
+  const loadDenominations = useCallback(async () => {
     if (!ipv.user_id) return
 
     const { data, error } = await supabase
@@ -675,7 +670,11 @@ function IPVReportsSection({
         })
       )
     }
-  }
+  }, [ipv.id, ipv.user_id])
+
+  useEffect(() => {
+    loadDenominations()
+  }, [loadDenominations])
 
   const saveDenominations = async () => {
     if (!ipv.user_id) {
