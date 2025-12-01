@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3, Edit2, Lock, LockOpen } from "lucide-react"
+import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3, Edit2, Lock, LockOpen, Banknote, FileDown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
+import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
 
 type Profile = {
   id: string
@@ -626,6 +627,25 @@ function IPVReportsSection({
   products: Product[]
   ipvName: string
 }) {
+  // Bill denominations (local state for admin to track)
+  const [bills, setBills] = useState<BillCount[]>([
+    { denomination: 1000, count: 0 },
+    { denomination: 500, count: 0 },
+    { denomination: 200, count: 0 },
+    { denomination: 100, count: 0 },
+    { denomination: 50, count: 0 },
+    { denomination: 20, count: 0 },
+    { denomination: 10, count: 0 },
+    { denomination: 5, count: 0 },
+    { denomination: 1, count: 0 },
+  ])
+
+  const updateBillCount = (denomination: number, count: number) => {
+    setBills(bills.map((b) => (b.denomination === denomination ? { ...b, count: Math.max(0, count) } : b)))
+  }
+
+  const totalBills = bills.reduce((sum, b) => sum + b.denomination * b.count, 0)
+
   // Calculate detailed stats per product
   const productStats = products.map((product) => {
     const productSales = sales.filter((s) => s.product_id === product.id)
@@ -665,9 +685,35 @@ function IPVReportsSection({
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   )
 
+  // Export to PDF function
+  const handleExportPDF = () => {
+    const reportData: ReportData = {
+      ipvName,
+      totalCash,
+      totalTransfer,
+      totalGeneral,
+      productStats,
+      salesHistory: sortedSales.map(sale => ({
+        date: formatDateTime(sale.created_at),
+        productName: sale.products?.name || "Producto desconocido",
+        quantity: sale.quantity,
+        paymentMethod: sale.payment_method,
+        total: Number(sale.total_amount)
+      })),
+      bills
+    }
+    exportReportToPDF(reportData)
+  }
+
   return (
     <div className="space-y-6">
-      <h2 className="text-lg sm:text-xl font-semibold">Estadísticas de {ipvName}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg sm:text-xl font-semibold">Estadísticas de {ipvName}</h2>
+        <Button onClick={handleExportPDF} className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
+          <FileDown className="h-4 w-4" />
+          <span className="ml-1">Exportar PDF</span>
+        </Button>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
@@ -781,6 +827,105 @@ function IPVReportsSection({
           )}
         </CardContent>
       </Card>
+
+      {/* Bill Denominations Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Banknote className="h-5 w-5" />
+            Declaración de Billetes
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {bills.map((bill) => (
+              <div key={bill.denomination} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                <div className="w-14 flex-shrink-0 text-center">
+                  <span className="font-bold text-gray-700 text-sm">${bill.denomination}</span>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => updateBillCount(bill.denomination, bill.count - 1)}
+                    className="h-8 w-8"
+                  >
+                    -
+                  </Button>
+                  <Input
+                    type="number"
+                    value={bill.count === 0 ? "" : bill.count}
+                    onChange={(e) => updateBillCount(bill.denomination, Number.parseInt(e.target.value) || 0)}
+                    onBlur={(e) => {
+                      if (e.target.value === "") {
+                        updateBillCount(bill.denomination, 0)
+                      }
+                    }}
+                    className="w-16 text-center"
+                    min="0"
+                    placeholder="0"
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => updateBillCount(bill.denomination, bill.count + 1)}
+                    className="h-8 w-8"
+                  >
+                    +
+                  </Button>
+                </div>
+                <div className="flex-1 text-right min-w-0">
+                  <span className="font-medium text-green-600 text-sm truncate block">
+                    ${(bill.denomination * bill.count).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bills Total */}
+      <Card className="bg-green-500 text-white">
+        <CardContent className="p-4">
+          <div className="text-center">
+            <p className="text-lg opacity-90">Total en Billetes</p>
+            <p className="text-4xl font-bold">${totalBills.toLocaleString()}</p>
+            <p className="text-sm opacity-75 mt-2">
+              {bills.reduce((sum, b) => sum + b.count, 0)} billetes totales
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Comparison with Cash Sales */}
+      {totalCash > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">Comparación con ventas en efectivo</p>
+              <div className="flex items-center justify-center gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Billetes</p>
+                  <p className="font-bold text-green-600">${totalBills.toLocaleString()}</p>
+                </div>
+                <span className="text-gray-400">vs</span>
+                <div>
+                  <p className="text-xs text-gray-500">Ventas Efectivo</p>
+                  <p className="font-bold text-blue-600">${formatCurrency(totalCash)}</p>
+                </div>
+              </div>
+              <div
+                className={`text-sm font-medium ${totalBills === totalCash ? "text-green-600" : "text-orange-600"}`}
+              >
+                {totalBills === totalCash
+                  ? "Los montos coinciden"
+                  : `Diferencia: $${Math.abs(totalBills - totalCash).toLocaleString()}`}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

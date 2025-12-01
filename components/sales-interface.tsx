@@ -8,16 +8,12 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock } from "lucide-react"
+import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock, FileDown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
-
-interface BillCount {
-  denomination: number
-  count: number
-}
+import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
 
 interface PendingPayment {
   id: string
@@ -251,6 +247,64 @@ export function SalesInterface({
 
   // Check if IPV is closed (read-only mode)
   const isIPVClosed = ipv.status === 'closed'
+
+  // Format date for display with exact time
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString("es-MX", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    })
+  }
+
+  // Export to PDF function
+  const handleExportPDF = () => {
+    // Calculate product stats for export
+    const productStats = products.map((product) => {
+      const productSales = sales.filter((s) => s.product_id === product.id)
+      const cashSales = productSales.filter((s) => s.payment_method === "cash")
+      const transferSales = productSales.filter((s) => s.payment_method === "transfer")
+
+      return {
+        name: product.name,
+        totalSold: product.initial_stock - product.current_stock,
+        cashQuantity: cashSales.reduce((sum, s) => sum + s.quantity, 0),
+        cashAmount: cashSales.reduce((sum, s) => sum + Number(s.total_amount), 0),
+        transferQuantity: transferSales.reduce((sum, s) => sum + s.quantity, 0),
+        transferAmount: transferSales.reduce((sum, s) => sum + Number(s.total_amount), 0),
+      }
+    })
+
+    // Sort sales by date (most recent first)
+    const sortedSales = [...sales].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+
+    const reportData: ReportData = {
+      ipvName: ipv.name,
+      totalCash,
+      totalTransfer,
+      totalGeneral,
+      productStats,
+      salesHistory: sortedSales.map(sale => {
+        const product = products.find(p => p.id === sale.product_id)
+        return {
+          date: formatDateTime(sale.created_at),
+          productName: product?.name || "Producto desconocido",
+          quantity: sale.quantity,
+          paymentMethod: sale.payment_method,
+          total: Number(sale.total_amount)
+        }
+      }),
+      bills
+    }
+    exportReportToPDF(reportData)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -567,6 +621,14 @@ export function SalesInterface({
         {/* Statistics Tab */}
         {activeTab === "stats" && (
           <div className="space-y-4">
+            {/* Export PDF Button */}
+            <div className="flex justify-end">
+              <Button onClick={handleExportPDF} className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
+                <FileDown className="h-4 w-4" />
+                <span className="ml-1">Exportar PDF</span>
+              </Button>
+            </div>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
