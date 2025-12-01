@@ -211,16 +211,18 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   }
 
   // Update a product
-  const updateProduct = async (productId: string, updates: { name?: string; price?: number; initial_stock?: number; current_stock?: number }) => {
+  const updateProduct = async (productId: string, updates: { name?: string; price?: number; initial_stock?: number; current_stock?: number }): Promise<boolean> => {
     setIsUpdatingProduct(true)
     try {
       const { error } = await supabase.from("products").update(updates).eq("id", productId)
 
       if (!error) {
         setProducts(products.map((p) => p.id === productId ? { ...p, ...updates } : p))
+        return true
       } else {
         console.error("Error updating product:", error)
         alert("Error al actualizar el producto: " + error.message)
+        return false
       }
     } finally {
       setIsUpdatingProduct(false)
@@ -433,7 +435,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                     <DialogTitle className="text-base sm:text-lg">Editar Producto</DialogTitle>
                   </DialogHeader>
                   {editingProduct && (
-                    <form onSubmit={(e) => {
+                    <form onSubmit={async (e) => {
                       e.preventDefault()
                       const formData = new FormData(e.currentTarget)
                       const name = formData.get("name")
@@ -446,14 +448,17 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                         return
                       }
                       
-                      updateProduct(editingProduct.id, {
+                      const success = await updateProduct(editingProduct.id, {
                         name: name as string,
                         price: Number.parseFloat(price as string),
                         initial_stock: Number.parseInt(initialStock as string),
                         current_stock: Number.parseInt(currentStock as string),
                       })
-                      setIsEditProductDialogOpen(false)
-                      setEditingProduct(null)
+                      
+                      if (success) {
+                        setIsEditProductDialogOpen(false)
+                        setEditingProduct(null)
+                      }
                     }} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="edit_product_name">Nombre del Producto</Label>
