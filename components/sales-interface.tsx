@@ -810,7 +810,7 @@ export function SalesInterface({
 
       {/* Payment Method Selection Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Seleccionar Método de Pago</DialogTitle>
             <DialogDescription>
@@ -819,14 +819,18 @@ export function SalesInterface({
           </DialogHeader>
           <div className="space-y-4">
             {/* Selected Products Summary */}
-            <div className="max-h-40 overflow-y-auto space-y-1 text-sm">
+            <div 
+              className="max-h-32 overflow-y-auto space-y-1 text-sm border rounded-md p-2 bg-gray-50"
+              role="list"
+              aria-label="Productos seleccionados"
+            >
               {Array.from(selectedProducts).map(([productId, quantity]) => {
                 const product = products.find(p => p.id === productId)
                 if (!product) return null
                 return (
-                  <div key={productId} className="flex justify-between">
-                    <span>{product.name} x{quantity}</span>
-                    <span className="font-medium">${(product.price * quantity).toFixed(2)}</span>
+                  <div key={productId} className="flex justify-between" role="listitem">
+                    <span className="truncate mr-2" title={product.name}>{product.name} x{quantity}</span>
+                    <span className="font-medium flex-shrink-0">${(product.price * quantity).toFixed(2)}</span>
                   </div>
                 )
               })}
@@ -837,22 +841,22 @@ export function SalesInterface({
               <Button
                 variant={selectedPaymentMethod === "cash" ? "default" : "outline"}
                 onClick={() => setSelectedPaymentMethod("cash")}
-                className={`h-20 flex-col ${
+                className={`h-16 flex-col ${
                   selectedPaymentMethod === "cash" ? "bg-green-600 hover:bg-green-700" : ""
                 }`}
               >
-                <Banknote className="h-8 w-8 mb-1" />
-                <span>Efectivo</span>
+                <Banknote className="h-6 w-6 mb-1" />
+                <span className="text-sm">Efectivo</span>
               </Button>
               <Button
                 variant={selectedPaymentMethod === "transfer" ? "default" : "outline"}
                 onClick={() => setSelectedPaymentMethod("transfer")}
-                className={`h-20 flex-col ${
+                className={`h-16 flex-col ${
                   selectedPaymentMethod === "transfer" ? "bg-blue-600 hover:bg-blue-700" : ""
                 }`}
               >
-                <CreditCard className="h-8 w-8 mb-1" />
-                <span>Transferencia</span>
+                <CreditCard className="h-6 w-6 mb-1" />
+                <span className="text-sm">Transferencia</span>
               </Button>
             </div>
 
