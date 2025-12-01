@@ -293,7 +293,7 @@ export default function DemoPage() {
                     key={product.id} 
                     className={`p-4 bg-white transition-shadow ${
                       isSelected ? 'ring-2 ring-purple-500 shadow-md' : 'hover:shadow-md'
-                    }`}
+                    } ${product.current_stock <= 0 ? 'opacity-50' : ''}`}
                   >
                     <div className="flex items-start gap-3">
                       {/* Checkbox */}
