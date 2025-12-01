@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2 } from "lucide-react"
+import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
@@ -30,10 +30,12 @@ export function SalesInterface({
   ipv,
   initialProducts,
   userId,
+  onBack,
 }: {
   ipv: IPV
   initialProducts: Product[]
   userId: string
+  onBack?: () => void
 }) {
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [sales, setSales] = useState<Sale[]>([])
@@ -42,7 +44,7 @@ export function SalesInterface({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cash" | "transfer" | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills">("products")
+  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">("products")
   const router = useRouter()
   const supabase = createClient()
 
@@ -251,9 +253,16 @@ export function SalesInterface({
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">{ipv.name}</h1>
-            <p className="text-xs text-gray-500">{ipv.description}</p>
+          <div className="flex items-center gap-3">
+            {onBack && (
+              <Button variant="ghost" size="icon" onClick={onBack} className="text-gray-600">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">{ipv.name}</h1>
+              <p className="text-xs text-gray-500">{ipv.description}</p>
+            </div>
           </div>
           <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-600">
             <LogOut className="h-5 w-5" />
@@ -306,6 +315,14 @@ export function SalesInterface({
           {pendingPayments.length > 0 && (
             <Badge className="ml-1 bg-orange-500">{pendingPayments.length}</Badge>
           )}
+        </Button>
+        <Button
+          variant={activeTab === "history" ? "default" : "outline"}
+          onClick={() => setActiveTab("history")}
+          className="flex-1"
+          size="sm"
+        >
+          Historial
         </Button>
         <Button
           variant={activeTab === "stats" ? "default" : "outline"}
@@ -373,7 +390,7 @@ export function SalesInterface({
                       key={product.id} 
                       className={`p-4 bg-white transition-shadow ${
                         isSelected ? 'ring-2 ring-purple-500 shadow-md' : 'hover:shadow-md'
-                      }`}
+                      } ${product.current_stock <= 0 ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-start gap-3">
                         {/* Checkbox */}
@@ -651,10 +668,16 @@ export function SalesInterface({
                         </Button>
                         <Input
                           type="number"
-                          value={bill.count}
+                          value={bill.count === 0 ? "" : bill.count}
                           onChange={(e) => updateBillCount(bill.denomination, Number.parseInt(e.target.value) || 0)}
+                          onBlur={(e) => {
+                            if (e.target.value === "") {
+                              updateBillCount(bill.denomination, 0)
+                            }
+                          }}
                           className="w-20 text-center"
                           min="0"
+                          placeholder="0"
                         />
                         <Button
                           variant="outline"
@@ -717,6 +740,70 @@ export function SalesInterface({
                 </CardContent>
               </Card>
             )}
+          </div>
+        )}
+
+        {/* History Tab */}
+        {activeTab === "history" && (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Historial de Ventas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sales.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500">
+                    <Clock className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+                    <p>No hay ventas registradas</p>
+                    <p className="text-sm">Las ventas confirmadas aparecerán aquí</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {[...sales]
+                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                      .map((sale) => {
+                        const product = products.find(p => p.id === sale.product_id)
+                        const saleDate = new Date(sale.created_at)
+                        return (
+                          <div key={sale.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium">{product?.name || "Producto"}</span>
+                              <Badge 
+                                className={sale.payment_method === "cash" ? "bg-green-500" : "bg-blue-500"}
+                              >
+                                {sale.payment_method === "cash" ? (
+                                  <><Banknote className="h-3 w-3 mr-1" />Efectivo</>
+                                ) : (
+                                  <><CreditCard className="h-3 w-3 mr-1" />Transfer</>
+                                )}
+                              </Badge>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-600">
+                                {saleDate.toLocaleDateString("es-MX", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric"
+                                })} {saleDate.toLocaleTimeString("es-MX", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true
+                                })}
+                              </span>
+                              <span className="font-bold">
+                                {sale.quantity} × ${Number(sale.unit_price).toFixed(2)} = ${Number(sale.total_amount).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>

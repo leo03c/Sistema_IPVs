@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Package, ArrowLeft, LogOut } from "lucide-react"
+import { Package, LogOut } from "lucide-react"
 import { SalesInterface } from "@/components/sales-interface"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
@@ -29,27 +29,12 @@ export function IPVSelector({
   // If user selected an IPV, show the sales interface
   if (selectedIPV) {
     return (
-      <div>
-        {/* Back button */}
-        <div className="bg-white shadow-sm border-b">
-          <div className="px-4 py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedIPV(null)}
-              className="text-gray-600"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Volver a mis IPVs
-            </Button>
-          </div>
-        </div>
-        <SalesInterface
-          ipv={selectedIPV.ipv}
-          initialProducts={selectedIPV.products}
-          userId={userId}
-        />
-      </div>
+      <SalesInterface
+        ipv={selectedIPV.ipv}
+        initialProducts={selectedIPV.products}
+        userId={userId}
+        onBack={() => setSelectedIPV(null)}
+      />
     )
   }
 

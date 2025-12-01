@@ -19,6 +19,7 @@ export type Sale = {
   product_id: string
   quantity: number
   payment_method: string
+  unit_price: number
   total_amount: number
   created_at: string
 }
