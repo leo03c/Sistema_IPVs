@@ -58,6 +58,8 @@ function formatCurrencyForPdf(amount: number): string {
     : `$${amount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
+const LINE_HEIGHT = 6
+
 export function exportReportToPDF(data: ReportData): void {
   const doc = new jsPDF() as jsPDFWithAutoTable
   const pageWidth = doc.internal.pageSize.getWidth()
@@ -83,11 +85,11 @@ export function exportReportToPDF(data: ReportData): void {
   let currentY = 36
   if (data.assignedUserEmail) {
     doc.text(`Usuario Asignado: ${data.assignedUserEmail}`, pageWidth / 2, currentY, { align: 'center' })
-    currentY += 6
+    currentY += LINE_HEIGHT
   }
   if (data.createdByEmail) {
     doc.text(`Creado por: ${data.createdByEmail}`, pageWidth / 2, currentY, { align: 'center' })
-    currentY += 6
+    currentY += LINE_HEIGHT
   }
   
   // Summary section
