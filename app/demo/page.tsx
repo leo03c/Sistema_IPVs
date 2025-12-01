@@ -43,7 +43,7 @@ export default function DemoPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cash" | "transfer" | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills">("products")
+  const [activeTab, setActiveTab] = useState<"products" | "pending" | "history" | "stats" | "bills">("products")
 
   // Toggle product selection
   const toggleProductSelection = (productId: string) => {
@@ -216,42 +216,50 @@ export default function DemoPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="px-4 flex gap-2 mb-4">
-        <Button
-          variant={activeTab === "products" ? "default" : "outline"}
-          onClick={() => setActiveTab("products")}
-          className="flex-1"
-          size="sm"
-        >
-          Productos
-        </Button>
-        <Button
-          variant={activeTab === "pending" ? "default" : "outline"}
-          onClick={() => setActiveTab("pending")}
-          className="flex-1 relative"
-          size="sm"
-        >
-          Pendientes
-          {pendingPayments.length > 0 && (
-            <Badge className="ml-1 bg-orange-500">{pendingPayments.length}</Badge>
-          )}
-        </Button>
-        <Button
-          variant={activeTab === "stats" ? "default" : "outline"}
-          onClick={() => setActiveTab("stats")}
-          className="flex-1"
-          size="sm"
-        >
-          Estadísticas
-        </Button>
-        <Button
-          variant={activeTab === "bills" ? "default" : "outline"}
-          onClick={() => setActiveTab("bills")}
-          className="flex-1"
-          size="sm"
-        >
-          Billetes
-        </Button>
+      <div className="px-4 mb-4">
+        <div className="grid grid-cols-3 gap-2">
+          <Button
+            variant={activeTab === "products" ? "default" : "outline"}
+            onClick={() => setActiveTab("products")}
+            size="sm"
+          >
+            Productos
+          </Button>
+          <Button
+            variant={activeTab === "pending" ? "default" : "outline"}
+            onClick={() => setActiveTab("pending")}
+            className="relative"
+            size="sm"
+          >
+            Pendientes
+            {pendingPayments.length > 0 && (
+              <Badge className="ml-1 bg-orange-500">{pendingPayments.length}</Badge>
+            )}
+          </Button>
+          <Button
+            variant={activeTab === "history" ? "default" : "outline"}
+            onClick={() => setActiveTab("history")}
+            size="sm"
+          >
+            Historial
+          </Button>
+          <Button
+            variant={activeTab === "stats" ? "default" : "outline"}
+            onClick={() => setActiveTab("stats")}
+            size="sm"
+            className="col-span-1"
+          >
+            Estadísticas
+          </Button>
+          <Button
+            variant={activeTab === "bills" ? "default" : "outline"}
+            onClick={() => setActiveTab("bills")}
+            size="sm"
+            className="col-span-2"
+          >
+            Billetes
+          </Button>
+        </div>
       </div>
 
       <div className="px-4 pb-4">
@@ -447,6 +455,27 @@ export default function DemoPage() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* History Tab */}
+        {activeTab === "history" && (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Historial de Ventas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="py-8 text-center text-gray-500">
+                  <Clock className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+                  <p>No hay ventas registradas</p>
+                  <p className="text-sm">Esta es una demostración. En modo real, el historial aparecerá aquí.</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 

@@ -369,8 +369,8 @@ export function SalesInterface({
       </div>
 
       {/* Tab Navigation */}
-      <div className="px-4 mb-4 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
+      <div className="px-4 mb-4">
+        <div className="grid grid-cols-3 gap-2">
           <Button
             variant={activeTab === "products" ? "default" : "outline"}
             onClick={() => setActiveTab("products")}
@@ -400,6 +400,7 @@ export function SalesInterface({
             variant={activeTab === "stats" ? "default" : "outline"}
             onClick={() => setActiveTab("stats")}
             size="sm"
+            className="col-span-1"
           >
             Estadísticas
           </Button>
@@ -407,6 +408,7 @@ export function SalesInterface({
             variant={activeTab === "bills" ? "default" : "outline"}
             onClick={() => setActiveTab("bills")}
             size="sm"
+            className="col-span-2"
           >
             Billetes
           </Button>
