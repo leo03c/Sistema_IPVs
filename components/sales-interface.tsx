@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock, FileDown } from "lucide-react"
+import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock, FileDown, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
@@ -58,9 +58,10 @@ export function SalesInterface({
     { denomination: 1, count: 0 },
   ])
 
-  // Load sales data
+  // Load sales data and denominations
   useEffect(() => {
     loadSales()
+    loadDenominations()
   }, [])
 
   const loadSales = async () => {
@@ -72,6 +73,29 @@ export function SalesInterface({
 
     if (data) {
       setSales(data)
+    }
+  }
+
+  const loadDenominations = async () => {
+    const { data, error } = await supabase
+      .from("denominations")
+      .select("*")
+      .eq("ipv_id", ipv.id)
+      .eq("user_id", userId)
+
+    if (error) {
+      console.error("Error loading denominations:", error)
+      return
+    }
+
+    if (data && data.length > 0) {
+      // Update bills state with loaded data
+      setBills(prevBills => 
+        prevBills.map(bill => {
+          const found = data.find(d => d.denomination === bill.denomination)
+          return found ? { ...bill, count: found.count } : bill
+        })
+      )
     }
   }
 
@@ -225,6 +249,38 @@ export function SalesInterface({
 
   const updateBillCount = (denomination: number, count: number) => {
     setBills(bills.map((b) => (b.denomination === denomination ? { ...b, count: Math.max(0, count) } : b)))
+  }
+
+  const saveDenominations = async () => {
+    setIsLoading(true)
+    try {
+      // Prepare upsert data for all denominations
+      const denominationsData = bills.map(bill => ({
+        ipv_id: ipv.id,
+        user_id: userId,
+        denomination: bill.denomination,
+        count: bill.count
+      }))
+
+      // Upsert all denominations (insert or update if exists)
+      const { error } = await supabase
+        .from("denominations")
+        .upsert(denominationsData, {
+          onConflict: 'ipv_id,user_id,denomination'
+        })
+
+      if (error) {
+        console.error("Error saving denominations:", error)
+        toast.error("Error al guardar las denominaciones")
+      } else {
+        toast.success("Denominaciones guardadas correctamente")
+      }
+    } catch (error) {
+      console.error("Error saving denominations:", error)
+      toast.error("Error al guardar las denominaciones")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Calculate totals
@@ -745,6 +801,7 @@ export function SalesInterface({
                           variant="outline"
                           size="icon"
                           onClick={() => updateBillCount(bill.denomination, bill.count - 1)}
+                          disabled={isIPVClosed}
                           className="h-8 w-8"
                         >
                           -
@@ -758,6 +815,7 @@ export function SalesInterface({
                               updateBillCount(bill.denomination, 0)
                             }
                           }}
+                          disabled={isIPVClosed}
                           className="w-16 text-center"
                           min="0"
                           placeholder="0"
@@ -766,6 +824,7 @@ export function SalesInterface({
                           variant="outline"
                           size="icon"
                           onClick={() => updateBillCount(bill.denomination, bill.count + 1)}
+                          disabled={isIPVClosed}
                           className="h-8 w-8"
                         >
                           +
@@ -781,6 +840,16 @@ export function SalesInterface({
                 </div>
               </CardContent>
             </Card>
+
+            {/* Save Button */}
+            <Button 
+              onClick={saveDenominations}
+              disabled={isLoading || isIPVClosed}
+              className="w-full bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {isLoading ? "Guardando..." : "Guardar Denominaciones"}
+            </Button>
 
             {/* Bills Total */}
             <Card className="bg-green-500 text-white">
