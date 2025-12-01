@@ -76,6 +76,9 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const [isCreatingIPV, setIsCreatingIPV] = useState(false)
   const [isCreatingProduct, setIsCreatingProduct] = useState(false)
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false)
+  const [isDeletingIPV, setIsDeletingIPV] = useState<string | null>(null)
+  const [isDeletingProduct, setIsDeletingProduct] = useState<string | null>(null)
+  const [isTogglingStatus, setIsTogglingStatus] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -111,16 +114,21 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   }
 
   const deleteIPV = async (ipvId: string) => {
-    const { error } = await supabase.from("ipvs").delete().eq("id", ipvId)
+    setIsDeletingIPV(ipvId)
+    try {
+      const { error } = await supabase.from("ipvs").delete().eq("id", ipvId)
 
-    if (!error) {
-      setIpvs(ipvs.filter((ipv) => ipv.id !== ipvId))
-      // Products are cascade deleted in database (ON DELETE CASCADE in foreign key)
-      // Update local state to reflect this
-      setProducts(products.filter((p) => p.ipv_id !== ipvId))
-    } else {
-      console.error("Error deleting IPV:", error)
-      alert("Error al eliminar el IPV: " + error.message)
+      if (!error) {
+        setIpvs(ipvs.filter((ipv) => ipv.id !== ipvId))
+        // Products are cascade deleted in database (ON DELETE CASCADE in foreign key)
+        // Update local state to reflect this
+        setProducts(products.filter((p) => p.ipv_id !== ipvId))
+      } else {
+        console.error("Error deleting IPV:", error)
+        alert("Error al eliminar el IPV: " + error.message)
+      }
+    } finally {
+      setIsDeletingIPV(null)
     }
   }
 
@@ -166,29 +174,39 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 
   // Toggle IPV status between open and closed
   const toggleIPVStatus = async (ipvId: string, currentStatus: 'open' | 'closed') => {
-    const newStatus = currentStatus === 'open' ? 'closed' : 'open'
-    const { error } = await supabase.from("ipvs").update({ status: newStatus }).eq("id", ipvId)
+    setIsTogglingStatus(ipvId)
+    try {
+      const newStatus = currentStatus === 'open' ? 'closed' : 'open'
+      const { error } = await supabase.from("ipvs").update({ status: newStatus }).eq("id", ipvId)
 
-    if (!error) {
-      setIpvs(ipvs.map((ipv) => ipv.id === ipvId ? { ...ipv, status: newStatus } : ipv))
-      if (selectedIPV && selectedIPV.id === ipvId) {
-        setSelectedIPV({ ...selectedIPV, status: newStatus })
+      if (!error) {
+        setIpvs(ipvs.map((ipv) => ipv.id === ipvId ? { ...ipv, status: newStatus } : ipv))
+        if (selectedIPV && selectedIPV.id === ipvId) {
+          setSelectedIPV({ ...selectedIPV, status: newStatus })
+        }
+      } else {
+        console.error("Error toggling IPV status:", error)
+        alert("Error al cambiar el estado del IPV: " + error.message)
       }
-    } else {
-      console.error("Error toggling IPV status:", error)
-      alert("Error al cambiar el estado del IPV: " + error.message)
+    } finally {
+      setIsTogglingStatus(null)
     }
   }
 
   // Delete a product
   const deleteProduct = async (productId: string) => {
-    const { error } = await supabase.from("products").delete().eq("id", productId)
+    setIsDeletingProduct(productId)
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", productId)
 
-    if (!error) {
-      setProducts(products.filter((p) => p.id !== productId))
-    } else {
-      console.error("Error deleting product:", error)
-      alert("Error al eliminar el producto: " + error.message)
+      if (!error) {
+        setProducts(products.filter((p) => p.id !== productId))
+      } else {
+        console.error("Error deleting product:", error)
+        alert("Error al eliminar el producto: " + error.message)
+      }
+    } finally {
+      setIsDeletingProduct(null)
     }
   }
 
@@ -243,12 +261,13 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
-                size="sm" 
+                size="sm"
+                disabled={isTogglingStatus === selectedIPV.id}
                 onClick={() => toggleIPVStatus(selectedIPV.id, selectedIPV.status || 'open')}
                 className={`shrink-0 h-8 sm:h-9 px-2 sm:px-3 ${selectedIPV.status === 'open' ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
               >
                 {selectedIPV.status === 'open' ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
-                <span className="hidden sm:inline sm:ml-2">{selectedIPV.status === 'open' ? 'Cerrar' : 'Abrir'}</span>
+                <span className="hidden sm:inline sm:ml-2">{isTogglingStatus === selectedIPV.id ? '...' : selectedIPV.status === 'open' ? 'Cerrar' : 'Abrir'}</span>
               </Button>
               <Button variant="outline" onClick={handleLogout} size="sm" className="shrink-0 h-8 sm:h-9 px-2 sm:px-3">
                 <LogOut className="h-4 w-4" />
@@ -375,9 +394,10 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                                 <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
                                 <AlertDialogAction
                                   className="bg-red-600 hover:bg-red-700"
+                                  disabled={isDeletingProduct === product.id}
                                   onClick={() => deleteProduct(product.id)}
                                 >
-                                  Eliminar
+                                  {isDeletingProduct === product.id ? "Eliminando..." : "Eliminar"}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -569,6 +589,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                       <Button
                         variant="ghost"
                         size="icon"
+                        disabled={isTogglingStatus === ipv.id}
                         className={`h-7 w-7 sm:h-8 sm:w-8 shrink-0 ${ipv.status === 'open' ? 'text-orange-500 hover:text-orange-700 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
                         onClick={(e) => {
                           e.stopPropagation()
@@ -601,12 +622,13 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                           <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-red-600 hover:bg-red-700"
+                            disabled={isDeletingIPV === ipv.id}
                             onClick={(e) => {
                               e.stopPropagation()
                               deleteIPV(ipv.id)
                             }}
                           >
-                            Eliminar
+                            {isDeletingIPV === ipv.id ? "Eliminando..." : "Eliminar"}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
