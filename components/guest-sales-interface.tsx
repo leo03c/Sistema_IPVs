@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Banknote, CreditCard, DollarSign, Calculator } from "lucide-react"
+import { Plus, Trash2, Banknote, CreditCard, DollarSign, Calculator, Clock } from "lucide-react"
 import Link from "next/link"
 import { formatCurrency } from "@/lib/utils"
 
@@ -40,7 +40,7 @@ export function GuestSalesInterface() {
   const [products, setProducts] = useState<GuestProduct[]>([])
   const [newProductName, setNewProductName] = useState("")
   const [newProductPrice, setNewProductPrice] = useState("")
-  const [activeTab, setActiveTab] = useState<"products" | "stats" | "bills">("products")
+  const [activeTab, setActiveTab] = useState<"products" | "pending" | "history" | "stats" | "bills">("products")
   const [isLoaded, setIsLoaded] = useState(false)
 
   // Bill denominations
@@ -177,8 +177,8 @@ export function GuestSalesInterface() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="px-4 mb-4 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
+      <div className="px-4 mb-4">
+        <div className="grid grid-cols-3 gap-2">
           <Button
             variant={activeTab === "products" ? "default" : "outline"}
             onClick={() => setActiveTab("products")}
@@ -187,9 +187,24 @@ export function GuestSalesInterface() {
             Productos
           </Button>
           <Button
+            variant={activeTab === "pending" ? "default" : "outline"}
+            onClick={() => setActiveTab("pending")}
+            size="sm"
+          >
+            Pendientes
+          </Button>
+          <Button
+            variant={activeTab === "history" ? "default" : "outline"}
+            onClick={() => setActiveTab("history")}
+            size="sm"
+          >
+            Historial
+          </Button>
+          <Button
             variant={activeTab === "stats" ? "default" : "outline"}
             onClick={() => setActiveTab("stats")}
             size="sm"
+            className="col-span-1"
           >
             Estadísticas
           </Button>
@@ -197,6 +212,7 @@ export function GuestSalesInterface() {
             variant={activeTab === "bills" ? "default" : "outline"}
             onClick={() => setActiveTab("bills")}
             size="sm"
+            className="col-span-2"
           >
             Billetes
           </Button>
@@ -345,6 +361,42 @@ export function GuestSalesInterface() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Pending Tab */}
+        {activeTab === "pending" && (
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="py-8 text-center text-gray-500">
+                <Clock className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+                <p>No hay pagos pendientes</p>
+                <p className="text-sm mt-2">En modo invitado, las ventas se registran directamente.</p>
+                <p className="text-sm">Usa el contador en cada producto para registrar ventas.</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* History Tab */}
+        {activeTab === "history" && (
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Historial de Ventas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="py-8 text-center text-gray-500">
+                  <Clock className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+                  <p>El historial no está disponible en modo invitado</p>
+                  <p className="text-sm mt-2">Las ventas no se guardan permanentemente en este modo.</p>
+                  <p className="text-sm">Para acceder al historial completo, inicia sesión con tu cuenta.</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
