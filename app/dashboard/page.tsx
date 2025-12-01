@@ -88,7 +88,7 @@ export default async function DashboardPage() {
       products?: { name: string }
     }
 
-    // Load products for all IPVs (admin sees all products)
+    // Load products for IPVs created by this admin
     let productsData: Product[] = []
     let productsError = null
     if (ipvIds.length > 0) {
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
       ipvIdsUsed: ipvIds
     })
 
-    // Load sales for all IPVs (admin sees all sales)
+    // Load sales for IPVs created by this admin
     let salesData: Sale[] = []
     let salesError = null
     if (ipvIds.length > 0) {
