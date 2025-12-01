@@ -157,21 +157,21 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon" onClick={() => setSelectedIPV(null)}>
+          <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedIPV(null)} className="shrink-0">
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{selectedIPV.name}</h1>
-                <p className="text-sm text-gray-500">
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{selectedIPV.name}</h1>
+                <p className="text-sm text-gray-500 truncate">
                   Asignado a: {selectedIPV.profiles?.email || "Sin asignar"}
                 </p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Cerrar Sesión
+            <Button variant="outline" onClick={handleLogout} className="shrink-0">
+              <LogOut className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Cerrar Sesión</span>
             </Button>
           </div>
         </div>
@@ -202,13 +202,14 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
           {/* Products Tab */}
           {activeTab === "products" && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-semibold">Productos del IPV</h2>
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <h2 className="text-lg sm:text-xl font-semibold">Productos del IPV</h2>
                 <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Agregar Producto
+                    <Button className="shrink-0">
+                      <Plus className="h-4 w-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Agregar Producto</span>
+                      <span className="sm:hidden">Agregar</span>
                     </Button>
                   </DialogTrigger>
                   <DialogContent>
@@ -252,15 +253,15 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                   </p>
                 </Card>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {ipvProducts.map((product) => (
                     <Card key={product.id}>
-                      <CardHeader>
-                        <CardTitle className="text-lg">{product.name}</CardTitle>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base sm:text-lg truncate">{product.name}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        <p className="text-2xl font-bold text-blue-600">${product.price.toFixed(2)}</p>
-                        <div className="flex justify-between text-sm">
+                        <p className="text-xl sm:text-2xl font-bold text-blue-600">${product.price.toFixed(2)}</p>
+                        <div className="flex flex-wrap justify-between gap-1 text-sm">
                           <span className="text-gray-600">Stock Inicial: {product.initial_stock}</span>
                           <Badge variant={product.current_stock > 5 ? "default" : "destructive"}>
                             Quedan: {product.current_stock}
@@ -297,29 +298,30 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Panel de Administración</h1>
-            <p className="text-sm text-gray-500">{profile.email}</p>
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">Panel de Administración</h1>
+            <p className="text-sm text-gray-500 truncate">{profile.email}</p>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Cerrar Sesión
+          <Button variant="outline" onClick={handleLogout} className="shrink-0">
+            <LogOut className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Cerrar Sesión</span>
           </Button>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto p-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Mis Inventarios (IPVs)</h2>
+        <div className="flex flex-wrap justify-between items-center gap-2">
+          <h2 className="text-lg sm:text-xl font-semibold">Mis Inventarios (IPVs)</h2>
           <Dialog open={isIPVDialogOpen} onOpenChange={(open) => {
             setIsIPVDialogOpen(open)
             if (!open) setSelectedUserId("")
           }}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Nuevo IPV
+              <Button className="shrink-0">
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Nuevo IPV</span>
+                <span className="sm:hidden">Nuevo</span>
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -418,8 +420,8 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                     </AlertDialog>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Badge variant="secondary">{ipv.profiles?.email || "Sin asignar"}</Badge>
-                    <div className="flex gap-4 text-sm text-gray-600">
+                    <Badge variant="secondary" className="max-w-full truncate">{ipv.profiles?.email || "Sin asignar"}</Badge>
+                    <div className="flex flex-wrap gap-2 sm:gap-4 text-sm text-gray-600">
                       <span>Productos: <span className="font-semibold">{ipvProductCount}</span></span>
                       <span>Stock: <span className="font-semibold">{ipvTotalStock}</span></span>
                     </div>
@@ -488,32 +490,32 @@ function IPVReportsSection({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Estadísticas de {ipvName}</h2>
+      <h2 className="text-lg sm:text-xl font-semibold">Estadísticas de {ipvName}</h2>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
         <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <CardHeader>
-            <CardTitle>Total Efectivo</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm sm:text-base">Total Efectivo</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">${totalCash.toFixed(2)}</p>
+            <p className="text-2xl sm:text-3xl font-bold">${totalCash.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardHeader>
-            <CardTitle>Total Transferencia</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm sm:text-base">Total Transferencia</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">${totalTransfer.toFixed(2)}</p>
+            <p className="text-2xl sm:text-3xl font-bold">${totalTransfer.toFixed(2)}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-          <CardHeader>
-            <CardTitle>Total General</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm sm:text-base">Total General</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">${totalGeneral.toFixed(2)}</p>
+            <p className="text-2xl sm:text-3xl font-bold">${totalGeneral.toFixed(2)}</p>
           </CardContent>
         </Card>
       </div>
@@ -521,35 +523,35 @@ function IPVReportsSection({
       {/* Detailed Product Reports */}
       <Card>
         <CardHeader>
-          <CardTitle>Reporte Detallado por Producto</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Reporte Detallado por Producto</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           {products.length === 0 ? (
             <p className="text-center text-gray-500 py-4">No hay productos en este IPV</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[600px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="p-3 text-left font-semibold">Producto</th>
-                    <th className="p-3 text-right font-semibold">Total Vendido</th>
-                    <th className="p-3 text-right font-semibold">Efectivo (Cant.)</th>
-                    <th className="p-3 text-right font-semibold">Efectivo ($)</th>
-                    <th className="p-3 text-right font-semibold">Transfer. (Cant.)</th>
-                    <th className="p-3 text-right font-semibold">Transfer. ($)</th>
-                    <th className="p-3 text-right font-semibold">Total ($)</th>
+                    <th className="p-2 sm:p-3 text-left font-semibold whitespace-nowrap">Producto</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Vendido</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Efec. (Cant.)</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Efec. ($)</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Trans. (Cant.)</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Trans. ($)</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Total ($)</th>
                   </tr>
                 </thead>
                 <tbody>
                   {productStats.map((stat, idx) => (
                     <tr key={idx} className="border-t">
-                      <td className="p-3 font-medium">{stat.name}</td>
-                      <td className="p-3 text-right">{stat.totalSold}</td>
-                      <td className="p-3 text-right text-green-600">{stat.cashQuantity}</td>
-                      <td className="p-3 text-right text-green-600 font-semibold">${stat.cashAmount.toFixed(2)}</td>
-                      <td className="p-3 text-right text-blue-600">{stat.transferQuantity}</td>
-                      <td className="p-3 text-right text-blue-600 font-semibold">${stat.transferAmount.toFixed(2)}</td>
-                      <td className="p-3 text-right font-bold">${(stat.cashAmount + stat.transferAmount).toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 font-medium">{stat.name}</td>
+                      <td className="p-2 sm:p-3 text-right">{stat.totalSold}</td>
+                      <td className="p-2 sm:p-3 text-right text-green-600">{stat.cashQuantity}</td>
+                      <td className="p-2 sm:p-3 text-right text-green-600 font-semibold">${stat.cashAmount.toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 text-right text-blue-600">{stat.transferQuantity}</td>
+                      <td className="p-2 sm:p-3 text-right text-blue-600 font-semibold">${stat.transferAmount.toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 text-right font-bold">${(stat.cashAmount + stat.transferAmount).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -562,38 +564,38 @@ function IPVReportsSection({
       {/* Sales History with Exact Timestamps */}
       <Card>
         <CardHeader>
-          <CardTitle>Historial de Ventas</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Historial de Ventas</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           {sortedSales.length === 0 ? (
             <p className="text-center text-gray-500 py-4">No hay ventas registradas en este IPV</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full text-sm min-w-[500px]">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="p-3 text-left font-semibold">Fecha y Hora</th>
-                    <th className="p-3 text-left font-semibold">Producto</th>
-                    <th className="p-3 text-center font-semibold">Cantidad</th>
-                    <th className="p-3 text-center font-semibold">Método de Pago</th>
-                    <th className="p-3 text-right font-semibold">Total</th>
+                    <th className="p-2 sm:p-3 text-left font-semibold whitespace-nowrap">Fecha y Hora</th>
+                    <th className="p-2 sm:p-3 text-left font-semibold whitespace-nowrap">Producto</th>
+                    <th className="p-2 sm:p-3 text-center font-semibold whitespace-nowrap">Cant.</th>
+                    <th className="p-2 sm:p-3 text-center font-semibold whitespace-nowrap">Pago</th>
+                    <th className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">Total</th>
                   </tr>
                 </thead>
                 <tbody>
                   {sortedSales.map((sale) => (
                     <tr key={sale.id} className="border-t hover:bg-gray-50">
-                      <td className="p-3 text-gray-600">{formatDateTime(sale.created_at)}</td>
-                      <td className="p-3 font-medium">{sale.products?.name || "Producto desconocido"}</td>
-                      <td className="p-3 text-center">{sale.quantity}</td>
-                      <td className="p-3 text-center">
+                      <td className="p-2 sm:p-3 text-gray-600 whitespace-nowrap text-xs sm:text-sm">{formatDateTime(sale.created_at)}</td>
+                      <td className="p-2 sm:p-3 font-medium">{sale.products?.name || "Producto desconocido"}</td>
+                      <td className="p-2 sm:p-3 text-center">{sale.quantity}</td>
+                      <td className="p-2 sm:p-3 text-center">
                         <Badge 
                           variant={sale.payment_method === "cash" ? "default" : "secondary"}
                           className={sale.payment_method === "cash" ? "bg-green-500" : "bg-blue-500"}
                         >
-                          {sale.payment_method === "cash" ? "Efectivo" : "Transferencia"}
+                          {sale.payment_method === "cash" ? "Efec." : "Trans."}
                         </Badge>
                       </td>
-                      <td className="p-3 text-right font-semibold">${Number(sale.total_amount).toFixed(2)}</td>
+                      <td className="p-2 sm:p-3 text-right font-semibold whitespace-nowrap">${Number(sale.total_amount).toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
