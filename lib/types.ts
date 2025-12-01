@@ -6,6 +6,7 @@ export type Product = {
   price: number
   initial_stock: number
   current_stock: number
+  ipv_id?: string
 }
 
 export type IPV = {
