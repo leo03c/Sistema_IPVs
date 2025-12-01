@@ -12,10 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3, Edit2, Lock, LockOpen, Banknote, FileDown } from "lucide-react"
+import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3, Edit2, Lock, LockOpen, Banknote, FileDown, Save } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
 import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
+import { toast } from "sonner"
+import { useEffect } from "react"
 
 type Profile = {
   id: string
@@ -629,7 +631,10 @@ function IPVReportsSection({
   products: Product[]
   ipv: IPV
 }) {
-  // Bill denominations (local state for admin to track)
+  const supabase = createClient()
+  const [isLoading, setIsLoading] = useState(false)
+  
+  // Bill denominations (load from database for the IPV user)
   const [bills, setBills] = useState<BillCount[]>([
     { denomination: 1000, count: 0 },
     { denomination: 500, count: 0 },
@@ -641,6 +646,73 @@ function IPVReportsSection({
     { denomination: 5, count: 0 },
     { denomination: 1, count: 0 },
   ])
+
+  // Load denominations from database when component mounts or IPV changes
+  useEffect(() => {
+    loadDenominations()
+  }, [ipv.id])
+
+  const loadDenominations = async () => {
+    if (!ipv.user_id) return
+
+    const { data, error } = await supabase
+      .from("denominations")
+      .select("*")
+      .eq("ipv_id", ipv.id)
+      .eq("user_id", ipv.user_id)
+
+    if (error) {
+      console.error("Error loading denominations:", error)
+      return
+    }
+
+    if (data && data.length > 0) {
+      // Update bills state with loaded data
+      setBills(prevBills => 
+        prevBills.map(bill => {
+          const found = data.find(d => d.denomination === bill.denomination)
+          return found ? { ...bill, count: found.count } : bill
+        })
+      )
+    }
+  }
+
+  const saveDenominations = async () => {
+    if (!ipv.user_id) {
+      toast.error("No se puede guardar: IPV sin usuario asignado")
+      return
+    }
+
+    setIsLoading(true)
+    try {
+      // Prepare upsert data for all denominations
+      const denominationsData = bills.map(bill => ({
+        ipv_id: ipv.id,
+        user_id: ipv.user_id,
+        denomination: bill.denomination,
+        count: bill.count
+      }))
+
+      // Upsert all denominations (insert or update if exists)
+      const { error } = await supabase
+        .from("denominations")
+        .upsert(denominationsData, {
+          onConflict: 'ipv_id,user_id,denomination'
+        })
+
+      if (error) {
+        console.error("Error saving denominations:", error)
+        toast.error("Error al guardar las denominaciones")
+      } else {
+        toast.success("Denominaciones guardadas correctamente")
+      }
+    } catch (error) {
+      console.error("Error saving denominations:", error)
+      toast.error("Error al guardar las denominaciones")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const updateBillCount = (denomination: number, count: number) => {
     setBills(bills.map((b) => (b.denomination === denomination ? { ...b, count: Math.max(0, count) } : b)))
@@ -886,6 +958,16 @@ function IPVReportsSection({
               </div>
             ))}
           </div>
+          
+          {/* Save Denominations Button */}
+          <Button
+            onClick={saveDenominations}
+            disabled={isLoading}
+            className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {isLoading ? "Guardando..." : "Guardar Denominaciones"}
+          </Button>
         </CardContent>
       </Card>
 
