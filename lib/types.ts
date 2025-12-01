@@ -14,6 +14,10 @@ export type IPV = {
   name: string
   description: string
   status?: 'open' | 'closed'
+  user_id?: string
+  created_by?: string
+  profiles?: { email: string }
+  created_by_profile?: { email: string }
 }
 
 export type Sale = {

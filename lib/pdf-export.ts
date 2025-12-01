@@ -42,6 +42,8 @@ export interface SaleHistoryItem {
 
 export interface ReportData {
   ipvName: string
+  assignedUserEmail?: string
+  createdByEmail?: string
   totalCash: number
   totalTransfer: number
   totalGeneral: number
@@ -77,19 +79,30 @@ export function exportReportToPDF(data: ReportData): void {
   })
   doc.text(`Generado: ${currentDate}`, pageWidth / 2, 28, { align: 'center' })
   
+  // User and Admin information
+  let currentY = 36
+  if (data.assignedUserEmail) {
+    doc.text(`Usuario Asignado: ${data.assignedUserEmail}`, pageWidth / 2, currentY, { align: 'center' })
+    currentY += 6
+  }
+  if (data.createdByEmail) {
+    doc.text(`Creado por: ${data.createdByEmail}`, pageWidth / 2, currentY, { align: 'center' })
+    currentY += 6
+  }
+  
   // Summary section
   doc.setFontSize(14)
   doc.setFont('helvetica', 'bold')
-  doc.text('Resumen de Ventas', 14, 40)
+  doc.text('Resumen de Ventas', 14, currentY + 4)
   
   doc.setFontSize(11)
   doc.setFont('helvetica', 'normal')
-  doc.text(`Total Efectivo: ${formatCurrencyForPdf(data.totalCash)}`, 14, 50)
-  doc.text(`Total Transferencia: ${formatCurrencyForPdf(data.totalTransfer)}`, 14, 58)
+  doc.text(`Total Efectivo: ${formatCurrencyForPdf(data.totalCash)}`, 14, currentY + 14)
+  doc.text(`Total Transferencia: ${formatCurrencyForPdf(data.totalTransfer)}`, 14, currentY + 22)
   doc.setFont('helvetica', 'bold')
-  doc.text(`Total General: ${formatCurrencyForPdf(data.totalGeneral)}`, 14, 66)
+  doc.text(`Total General: ${formatCurrencyForPdf(data.totalGeneral)}`, 14, currentY + 30)
   
-  let currentY = 80
+  currentY = currentY + 44
   
   // Product Statistics Table
   if (data.productStats.length > 0) {
