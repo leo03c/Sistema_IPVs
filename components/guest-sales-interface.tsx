@@ -4,9 +4,13 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Plus, Trash2, Banknote, CreditCard, DollarSign, Calculator, Clock } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
+import { Plus, Trash2, Banknote, CreditCard, DollarSign, Calculator, Clock, ShoppingCart, Check } from "lucide-react"
 import Link from "next/link"
 import { formatCurrency } from "@/lib/utils"
+import { toast } from "sonner"
 
 interface GuestProduct {
   id: string
@@ -19,6 +23,14 @@ interface GuestProduct {
 interface BillCount {
   denomination: number
   count: number
+}
+
+interface PendingPayment {
+  id: string
+  items: { product: GuestProduct; quantity: number }[]
+  paymentMethod: "cash" | "transfer"
+  total: number
+  status: "pending" | "confirmed"
 }
 
 const STORAGE_KEY_PRODUCTS = "guest_products"
@@ -42,6 +54,12 @@ export function GuestSalesInterface() {
   const [newProductPrice, setNewProductPrice] = useState("")
   const [activeTab, setActiveTab] = useState<"products" | "pending" | "history" | "stats" | "bills">("products")
   const [isLoaded, setIsLoaded] = useState(false)
+
+  // Checkbox purchase system state
+  const [selectedProducts, setSelectedProducts] = useState<Map<string, number>>(new Map())
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([])
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cash" | "transfer" | null>(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   // Bill denominations
   const [bills, setBills] = useState<BillCount[]>(defaultBills)
@@ -129,6 +147,118 @@ export function GuestSalesInterface() {
     setBills(bills.map((b) => (b.denomination === denomination ? { ...b, count: Math.max(0, count) } : b)))
   }
 
+  // Toggle product selection
+  const toggleProductSelection = (productId: string) => {
+    const newSelected = new Map(selectedProducts)
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId)
+    } else {
+      newSelected.set(productId, 1)
+    }
+    setSelectedProducts(newSelected)
+  }
+
+  // Update quantity for a selected product
+  const updateProductQuantity = (productId: string, quantity: number) => {
+    const newSelected = new Map(selectedProducts)
+    if (quantity <= 0) {
+      newSelected.delete(productId)
+    } else {
+      newSelected.set(productId, quantity)
+    }
+    setSelectedProducts(newSelected)
+  }
+
+  // Calculate total for selected products
+  const calculateSelectedTotal = () => {
+    let total = 0
+    selectedProducts.forEach((quantity, productId) => {
+      const product = products.find(p => p.id === productId)
+      if (product) {
+        total += product.price * quantity
+      }
+    })
+    return total
+  }
+
+  // Create pending payment
+  const createPendingPayment = () => {
+    if (selectedProducts.size === 0 || !selectedPaymentMethod) return
+
+    const items: { product: GuestProduct; quantity: number }[] = []
+    selectedProducts.forEach((quantity, productId) => {
+      const product = products.find(p => p.id === productId)
+      if (product) {
+        items.push({ product, quantity })
+      }
+    })
+
+    const newPayment: PendingPayment = {
+      id: crypto.randomUUID(),
+      items,
+      paymentMethod: selectedPaymentMethod,
+      total: calculateSelectedTotal(),
+      status: "pending"
+    }
+
+    setPendingPayments([...pendingPayments, newPayment])
+
+    // Reset selection
+    setSelectedProducts(new Map())
+    setSelectedPaymentMethod(null)
+    setIsDialogOpen(false)
+
+    toast.success("Pago agregado a pendientes")
+  }
+
+  // Confirm pending payment
+  const confirmPayment = (paymentId: string) => {
+    const payment = pendingPayments.find(p => p.id === paymentId)
+    if (!payment) return
+
+    // Add sales to products
+    setProducts(prev =>
+      prev.map(p => {
+        const item = payment.items.find(i => i.product.id === p.id)
+        if (item) {
+          if (payment.paymentMethod === "cash") {
+            return { ...p, soldCash: p.soldCash + item.quantity }
+          } else {
+            return { ...p, soldTransfer: p.soldTransfer + item.quantity }
+          }
+        }
+        return p
+      })
+    )
+
+    // Update payment status
+    setPendingPayments(prev =>
+      prev.map(p => p.id === paymentId ? { ...p, status: "confirmed" as const } : p)
+    )
+
+    // Remove confirmed payment after a short delay
+    setTimeout(() => {
+      setPendingPayments(prev => prev.filter(p => p.id !== paymentId))
+    }, 1500)
+
+    toast.success("Pago confirmado")
+  }
+
+  // Cancel pending payment
+  const cancelPendingPayment = (paymentId: string) => {
+    setPendingPayments(prev => prev.filter(p => p.id !== paymentId))
+    toast.info("Pago cancelado")
+  }
+
+  // Open dialog for payment method selection
+  const openPaymentDialog = () => {
+    if (selectedProducts.size === 0) {
+      toast.warning("Selecciona al menos un producto")
+      return
+    }
+    setIsDialogOpen(true)
+  }
+
   // Calculate totals
   const totalCash = products.reduce((sum, p) => sum + p.soldCash * p.price, 0)
   const totalTransfer = products.reduce((sum, p) => sum + p.soldTransfer * p.price, 0)
@@ -189,9 +319,13 @@ export function GuestSalesInterface() {
           <Button
             variant={activeTab === "pending" ? "default" : "outline"}
             onClick={() => setActiveTab("pending")}
+            className="relative"
             size="sm"
           >
             Pendientes
+            {pendingPayments.length > 0 && (
+              <Badge className="ml-1 bg-orange-500">{pendingPayments.length}</Badge>
+            )}
           </Button>
           <Button
             variant={activeTab === "history" ? "default" : "outline"}
@@ -223,6 +357,31 @@ export function GuestSalesInterface() {
         {/* Products Tab */}
         {activeTab === "products" && (
           <div className="space-y-4">
+            {/* Selected Products Summary - Fixed at top */}
+            {selectedProducts.size > 0 && (
+              <Card className="bg-purple-50 border-purple-200 sticky top-[76px] z-10">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <ShoppingCart className="h-5 w-5 text-purple-600" />
+                      <span className="font-semibold text-purple-800">
+                        {selectedProducts.size} producto(s) seleccionado(s)
+                      </span>
+                    </div>
+                    <span className="text-xl font-bold text-purple-700">
+                      ${formatCurrency(calculateSelectedTotal())}
+                    </span>
+                  </div>
+                  <Button 
+                    onClick={openPaymentDialog}
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                  >
+                    Procesar Pago
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Add Product Form */}
             <Card>
               <CardHeader className="pb-2">
@@ -263,102 +422,119 @@ export function GuestSalesInterface() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {products.map((product) => (
-                  <Card key={product.id} className="overflow-hidden">
-                    <CardContent className="p-0">
-                      {/* Product Header */}
-                      <div className="p-3 bg-gray-50 border-b flex items-center justify-between">
-                        <div>
-                          <h3 className="font-semibold text-gray-900">{product.name}</h3>
-                          <p className="text-sm text-gray-600">${formatCurrency(product.price)} c/u</p>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeProduct(product.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                {products.map((product) => {
+                  const isSelected = selectedProducts.has(product.id)
+                  const selectedQty = selectedProducts.get(product.id) || 0
 
-                      {/* Sales Controls */}
-                      <div className="p-3 grid grid-cols-2 gap-3">
-                        {/* Cash */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-green-600">
-                            <Banknote className="h-4 w-4" />
-                            <span className="text-sm font-medium">Efectivo</span>
+                  return (
+                    <Card 
+                      key={product.id} 
+                      className={`overflow-hidden transition-shadow ${
+                        isSelected ? 'ring-2 ring-purple-500 shadow-md' : ''
+                      }`}
+                    >
+                      <CardContent className="p-0">
+                        {/* Product Header with Checkbox */}
+                        <div className="p-3 bg-gray-50 border-b flex items-start gap-3">
+                          {/* Checkbox for selection */}
+                          <div className="pt-1">
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleProductSelection(product.id)}
+                              className="h-5 w-5"
+                            />
                           </div>
-                          <div className="flex items-center gap-2">
+                          
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900">{product.name}</h3>
+                            <p className="text-sm text-gray-600">${formatCurrency(product.price)} c/u</p>
+                          </div>
+
+                          {/* Quantity Controls (when selected) */}
+                          {isSelected && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => updateProductQuantity(product.id, selectedQty - 1)}
+                                className="h-8 w-8"
+                              >
+                                -
+                              </Button>
+                              <span className="w-8 text-center font-bold">{selectedQty}</span>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => updateProductQuantity(product.id, selectedQty + 1)}
+                                className="h-8 w-8"
+                              >
+                                +
+                              </Button>
+                            </div>
+                          )}
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeProduct(product.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {/* Sales Summary & Direct Controls */}
+                        <div className="p-3 space-y-3">
+                          {/* Current Sales Display */}
+                          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                            <div className="bg-green-50 rounded p-2">
+                              <p className="text-green-600 font-medium">{product.soldCash}</p>
+                              <p className="text-xs text-gray-500">Efectivo</p>
+                            </div>
+                            <div className="bg-blue-50 rounded p-2">
+                              <p className="text-blue-600 font-medium">{product.soldTransfer}</p>
+                              <p className="text-xs text-gray-500">Transfer</p>
+                            </div>
+                            <div className="bg-purple-50 rounded p-2">
+                              <p className="text-purple-600 font-medium">{product.soldCash + product.soldTransfer}</p>
+                              <p className="text-xs text-gray-500">Total</p>
+                            </div>
+                          </div>
+
+                          {/* Quick Add Controls */}
+                          <div className="grid grid-cols-2 gap-2">
                             <Button
                               variant="outline"
-                              size="icon"
-                              onClick={() => updateSold(product.id, "cash", -1)}
-                              className="h-10 w-10"
-                            >
-                              -
-                            </Button>
-                            <div className="flex-1 text-center">
-                              <p className="text-2xl font-bold">{product.soldCash}</p>
-                              <p className="text-xs text-gray-500">${formatCurrency(product.soldCash * product.price)}</p>
-                            </div>
-                            <Button
-                              variant="default"
-                              size="icon"
+                              size="sm"
                               onClick={() => updateSold(product.id, "cash", 1)}
-                              className="h-10 w-10 bg-green-500 hover:bg-green-600"
+                              className="h-8 text-xs"
                             >
-                              +
+                              <Banknote className="h-3 w-3 mr-1" />
+                              +1 Efectivo
                             </Button>
-                          </div>
-                        </div>
-
-                        {/* Transfer */}
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2 text-blue-600">
-                            <CreditCard className="h-4 w-4" />
-                            <span className="text-sm font-medium">Transfer</span>
-                          </div>
-                          <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
-                              size="icon"
-                              onClick={() => updateSold(product.id, "transfer", -1)}
-                              className="h-10 w-10"
-                            >
-                              -
-                            </Button>
-                            <div className="flex-1 text-center">
-                              <p className="text-2xl font-bold">{product.soldTransfer}</p>
-                              <p className="text-xs text-gray-500">
-                                ${formatCurrency(product.soldTransfer * product.price)}
-                              </p>
-                            </div>
-                            <Button
-                              variant="default"
-                              size="icon"
+                              size="sm"
                               onClick={() => updateSold(product.id, "transfer", 1)}
-                              className="h-10 w-10 bg-blue-500 hover:bg-blue-600"
+                              className="h-8 text-xs"
                             >
-                              +
+                              <CreditCard className="h-3 w-3 mr-1" />
+                              +1 Transfer
                             </Button>
                           </div>
-                        </div>
-                      </div>
 
-                      {/* Product Total */}
-                      <div className="px-3 pb-3">
-                        <div className="bg-purple-50 rounded-lg p-2 text-center">
-                          <span className="text-sm text-purple-600">Total producto: </span>
-                          <span className="font-bold text-purple-700">
-                            ${formatCurrency((product.soldCash + product.soldTransfer) * product.price)}
-                          </span>
+                          {/* Product Total */}
+                          <div className="bg-purple-50 rounded-lg p-2 text-center">
+                            <span className="text-sm text-purple-600">Total vendido: </span>
+                            <span className="font-bold text-purple-700">
+                              ${formatCurrency((product.soldCash + product.soldTransfer) * product.price)}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  )
+                })}
               </div>
             )}
           </div>
@@ -367,14 +543,87 @@ export function GuestSalesInterface() {
         {/* Pending Tab */}
         {activeTab === "pending" && (
           <div className="space-y-4">
-            <Card>
-              <CardContent className="py-8 text-center text-gray-500">
-                <Clock className="h-10 w-10 mx-auto mb-3 text-gray-400" />
-                <p>No hay pagos pendientes</p>
-                <p className="text-sm mt-2">En modo invitado, las ventas se registran directamente.</p>
-                <p className="text-sm">Usa el contador en cada producto para registrar ventas.</p>
-              </CardContent>
-            </Card>
+            {pendingPayments.length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-gray-500">
+                  <Clock className="h-10 w-10 mx-auto mb-3 text-gray-400" />
+                  <p>No hay pagos pendientes</p>
+                  <p className="text-sm">Selecciona productos para crear un nuevo pago</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3">
+                {pendingPayments.map((payment) => (
+                  <Card 
+                    key={payment.id} 
+                    className={`overflow-hidden ${
+                      payment.status === "confirmed" ? "bg-green-50 border-green-300" : "bg-orange-50 border-orange-200"
+                    }`}
+                  >
+                    <CardContent className="p-4">
+                      {/* Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          {payment.status === "confirmed" ? (
+                            <Check className="h-5 w-5 text-green-600" />
+                          ) : (
+                            <Clock className="h-5 w-5 text-orange-600" />
+                          )}
+                          <Badge 
+                            className={payment.status === "confirmed" ? "bg-green-500" : "bg-orange-500"}
+                          >
+                            {payment.status === "confirmed" ? "Confirmado" : "Pendiente"}
+                          </Badge>
+                          <Badge 
+                            className={payment.paymentMethod === "cash" ? "bg-green-600" : "bg-blue-600"}
+                          >
+                            {payment.paymentMethod === "cash" ? (
+                              <><Banknote className="h-3 w-3 mr-1" />Efectivo</>
+                            ) : (
+                              <><CreditCard className="h-3 w-3 mr-1" />Transfer</>
+                            )}
+                          </Badge>
+                        </div>
+                        <span className="text-xl font-bold">
+                          ${formatCurrency(payment.total)}
+                        </span>
+                      </div>
+
+                      {/* Items */}
+                      <div className="space-y-1 mb-3">
+                        {payment.items.map((item, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <span>{item.product.name} x{item.quantity}</span>
+                            <span className="font-medium">${formatCurrency(item.product.price * item.quantity)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Actions */}
+                      {payment.status === "pending" && (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => cancelPendingPayment(payment.id)}
+                            className="flex-1"
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Cancelar
+                          </Button>
+                          <Button
+                            onClick={() => confirmPayment(payment.id)}
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            <Check className="h-4 w-4 mr-1" />
+                            Confirmar
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -590,6 +839,82 @@ export function GuestSalesInterface() {
           </div>
         )}
       </div>
+
+      {/* Payment Method Selection Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Seleccionar Método de Pago</DialogTitle>
+            <DialogDescription>
+              Total a pagar: ${formatCurrency(calculateSelectedTotal())}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Selected Products Summary */}
+            <div 
+              className="max-h-32 overflow-y-auto space-y-1 text-sm border rounded-md p-2 bg-gray-50"
+              role="list"
+              aria-label="Productos seleccionados"
+            >
+              {Array.from(selectedProducts).map(([productId, quantity]) => {
+                const product = products.find(p => p.id === productId)
+                if (!product) return null
+                return (
+                  <div key={productId} className="flex justify-between">
+                    <span>{product.name} x{quantity}</span>
+                    <span className="font-medium">${formatCurrency(product.price * quantity)}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant={selectedPaymentMethod === "cash" ? "default" : "outline"}
+                onClick={() => setSelectedPaymentMethod("cash")}
+                className={`h-16 flex-col ${
+                  selectedPaymentMethod === "cash" ? "bg-green-600 hover:bg-green-700" : ""
+                }`}
+              >
+                <Banknote className="h-6 w-6 mb-1" />
+                <span className="text-sm">Efectivo</span>
+              </Button>
+              <Button
+                variant={selectedPaymentMethod === "transfer" ? "default" : "outline"}
+                onClick={() => setSelectedPaymentMethod("transfer")}
+                className={`h-16 flex-col ${
+                  selectedPaymentMethod === "transfer" ? "bg-blue-600 hover:bg-blue-700" : ""
+                }`}
+              >
+                <CreditCard className="h-6 w-6 mb-1" />
+                <span className="text-sm">Transferencia</span>
+              </Button>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsDialogOpen(false)
+                  setSelectedPaymentMethod(null)
+                }}
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={createPendingPayment}
+                disabled={!selectedPaymentMethod}
+                className="flex-1 bg-orange-500 hover:bg-orange-600"
+              >
+                <Clock className="h-4 w-4 mr-1" />
+                Agregar Pendiente
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
