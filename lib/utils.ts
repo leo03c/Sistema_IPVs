@@ -11,7 +11,7 @@ export function cn(...inputs: ClassValue[]) {
  * - $85.50 stays as $85.50
  */
 export function formatCurrency(amount: number): string {
-  return amount % 1 === 0
+  return Number.isInteger(amount)
     ? amount.toLocaleString('es-MX')
     : amount.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
