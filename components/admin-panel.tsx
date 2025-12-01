@@ -88,7 +88,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       name: formData.get("name") as string,
       user_id: selectedUserId,
       created_by: profile.id,
-    }).select("*, profiles!ipvs_user_id_fkey(email)")
+    }).select("*, profiles! ipvs_user_id_fkey(email), created_by_profile:profiles!ipvs_created_by_fkey(email)")
 
     if (!error && data) {
       setIpvs([data[0], ...ipvs])
