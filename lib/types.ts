@@ -1,0 +1,35 @@
+// Shared types for the IPV inventory management system
+
+export type Product = {
+  id: string
+  name: string
+  price: number
+  initial_stock: number
+  current_stock: number
+}
+
+export type IPV = {
+  id: string
+  name: string
+  description: string
+}
+
+export type Sale = {
+  id: string
+  product_id: string
+  quantity: number
+  payment_method: string
+  total_amount: number
+  created_at: string
+}
+
+export type Profile = {
+  id: string
+  email: string
+  role: string
+}
+
+export type IPVWithProducts = {
+  ipv: IPV
+  products: Product[]
+}
