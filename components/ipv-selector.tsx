@@ -82,9 +82,9 @@ export function IPVSelector({
       const ipvData = ipvsWithProducts.find(({ ipv }) => ipv.id === ipvId)
       if (ipvData) {
         // Use the shared loadIPVProducts function to avoid code duplication.
-        // We don't include loadIPVProducts in dependencies because it only depends
-        // on supabase, which is stable. This prevents the effect from re-running
-        // when searchParams changes (which would happen if we used handleSelectIPV).
+        // loadIPVProducts only depends on supabase (which is stable), so it won't
+        // recreate when searchParams changes. This prevents the circular dependency
+        // that would occur if we used handleSelectIPV (which depends on searchParams).
         loadIPVProducts(ipvData)
       }
     }
