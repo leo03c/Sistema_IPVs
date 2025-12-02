@@ -48,8 +48,9 @@ export function SalesInterface({
   const searchParams = useSearchParams()
   const supabase = createClient()
   
-  // Inicializar con valor por defecto, luego actualizar en el cliente
-  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">("products")
+  // Initialize activeTab from URL params (same pattern as AdminPanel)
+  const initialActiveTab = (searchParams.get("tab") as "products" | "pending" | "stats" | "bills" | "history") || "products"
+  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">(initialActiveTab)
 
   // Bill denominations (local state - same as guest mode)
   const [bills, setBills] = useState<BillCount[]>([
@@ -64,13 +65,9 @@ export function SalesInterface({
     { denomination: 1, count: 0 },
   ])
 
-  // Marcar que estamos en el cliente y leer el tab de la URL
+  // Mark that we are on the client side to prevent hydration mismatches during SSR
   useEffect(() => {
     setIsClient(true)
-    const tabFromUrl = searchParams.get("tab") as "products" | "pending" | "stats" | "bills" | "history"
-    if (tabFromUrl && ["products", "pending", "stats", "bills", "history"].includes(tabFromUrl)) {
-      setActiveTab(tabFromUrl)
-    }
   }, [])
 
   // Load sales data and denominations
@@ -79,14 +76,14 @@ export function SalesInterface({
     loadDenominations()
   }, [])
 
-  // Update URL when tab changes (solo en cliente)
+  // Update URL when tab changes (only on client side)
   useEffect(() => {
-    if (! isClient) return
+    if (!isClient) return
     
-    const newParams = new URLSearchParams(searchParams. toString())
+    const newParams = new URLSearchParams(searchParams.toString())
     newParams.set("tab", activeTab)
-    router.replace(`? ${newParams.toString()}`, { scroll: false })
-  }, [activeTab, isClient])
+    router.replace(`?${newParams.toString()}`, { scroll: false })
+  }, [activeTab, isClient, searchParams, router])
 
   const loadSales = async () => {
     const { data } = await supabase
