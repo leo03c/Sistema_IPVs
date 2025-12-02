@@ -76,10 +76,32 @@ export function IPVSelector({
       hasRestoredFromUrl.current = true
       const ipvData = ipvsWithProducts.find(({ ipv }) => ipv.id === ipvId)
       if (ipvData) {
-        handleSelectIPV(ipvData)
+        // Inline the IPV selection logic to avoid circular dependency
+        setIsLoading(true)
+        supabase
+          .from("products")
+          .select("*")
+          .eq("ipv_id", ipvData.ipv.id)
+          .order("name")
+          .then(({ data: freshProducts }) => {
+            const products = (freshProducts || []) as Product[]
+            setRefreshedProducts(prev => new Map(prev).set(ipvData.ipv.id, products))
+            setSelectedIPV({
+              ipv: ipvData.ipv,
+              products
+            })
+          })
+          .catch((error) => {
+            console.error("Error loading products:", error)
+            // Fallback to cached products if fetch fails
+            setSelectedIPV(ipvData)
+          })
+          .finally(() => {
+            setIsLoading(false)
+          })
       }
     }
-  }, [handleSelectIPV, ipvsWithProducts, searchParams, selectedIPV])
+  }, [ipvsWithProducts, searchParams, selectedIPV, supabase])
 
   // Handle going back from SalesInterface - refresh products for all IPVs
   const handleBack = useCallback(async () => {
