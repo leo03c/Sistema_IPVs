@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.product_catalog (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   admin_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
+  price NUMERIC(10, 2) NOT NULL CHECK (price > 0),
   description TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()

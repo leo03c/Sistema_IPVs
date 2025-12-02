@@ -204,10 +204,16 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   }
 
   // Add product from catalog to IPV
-  const addCatalogProductToIPV = async (catalogProductId: string, quantity: number) => {
+  const addCatalogProductToIPV = async (catalogProductId: string, quantity: number): Promise<boolean> => {
     if (!selectedIPV) {
       toast.error("Por favor selecciona un IPV")
-      return
+      return false
+    }
+
+    // Validate quantity
+    if (!quantity || quantity <= 0 || !Number.isInteger(quantity)) {
+      toast.error("La cantidad debe ser un número entero positivo")
+      return false
     }
 
     setIsCreatingProduct(true)
@@ -215,7 +221,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       const catalogProduct = catalogProducts.find(p => p.id === catalogProductId)
       if (!catalogProduct) {
         toast.error("Producto no encontrado en el catálogo")
-        return
+        return false
       }
 
       const { data, error } = await supabase.from("products").insert({
@@ -446,10 +452,16 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                         e.preventDefault()
                         const formData = new FormData(e.currentTarget)
                         const catalogProductId = formData.get("catalog_product_id") as string
-                        const quantity = Number.parseInt(formData.get("quantity") as string)
+                        const quantityStr = formData.get("quantity") as string
                         
                         if (!catalogProductId) {
                           toast.error("Por favor selecciona un producto")
+                          return
+                        }
+                        
+                        const quantity = Number.parseInt(quantityStr, 10)
+                        if (isNaN(quantity) || quantity <= 0) {
+                          toast.error("Por favor ingresa una cantidad válida")
                           return
                         }
                         
@@ -481,6 +493,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                             name="quantity"
                             type="number"
                             min="1"
+                            step="1"
                             required
                             placeholder="¿Cuántos productos envías?"
                           />
@@ -844,7 +857,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="catalog_product_price">Precio</Label>
-                      <Input id="catalog_product_price" name="price" type="number" step="0.01" min="0" required />
+                      <Input id="catalog_product_price" name="price" type="number" step="0.01" min="0.01" required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="catalog_product_description">Descripción (Opcional)</Label>
@@ -966,7 +979,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit_catalog_product_price">Precio</Label>
-                      <Input id="edit_catalog_product_price" name="price" type="number" step="0.01" min="0" defaultValue={editingCatalogProduct.price} required />
+                      <Input id="edit_catalog_product_price" name="price" type="number" step="0.01" min="0.01" defaultValue={editingCatalogProduct.price} required />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="edit_catalog_product_description">Descripción (Opcional)</Label>
