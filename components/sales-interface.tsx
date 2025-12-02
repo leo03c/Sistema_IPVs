@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock, FileDown, Save } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
@@ -41,9 +41,13 @@ export function SalesInterface({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cash" | "transfer" | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">("products")
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+  
+  // Get initial tab from URL or default to "products"
+  const initialTab = (searchParams.get("tab") as "products" | "pending" | "stats" | "bills" | "history") || "products"
+  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">(initialTab)
 
   // Bill denominations (local state - same as guest mode)
   const [bills, setBills] = useState<BillCount[]>([
@@ -63,6 +67,13 @@ export function SalesInterface({
     loadSales()
     loadDenominations()
   }, [])
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const newParams = new URLSearchParams(searchParams.toString())
+    newParams.set("tab", activeTab)
+    router.replace(`?${newParams.toString()}`, { scroll: false })
+  }, [activeTab, router, searchParams])
 
   const loadSales = async () => {
     const { data } = await supabase
