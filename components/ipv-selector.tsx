@@ -69,13 +69,15 @@ export function IPVSelector({
   // Restore selected IPV from URL on mount
   useEffect(() => {
     const ipvId = searchParams.get("ipv")
-    if (ipvId) {
+    // Only restore if we don't have a selected IPV yet (initial mount)
+    if (ipvId && !selectedIPV) {
       const ipvData = ipvsWithProducts.find(({ ipv }) => ipv.id === ipvId)
       if (ipvData) {
         handleSelectIPV(ipvData)
       }
     }
-  }, []) // Run only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []) // Run only once on mount - intentionally empty to avoid re-running
 
   // Handle going back from SalesInterface - refresh products for all IPVs
   const handleBack = useCallback(async () => {
