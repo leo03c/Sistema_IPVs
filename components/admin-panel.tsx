@@ -435,74 +435,103 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                     <DialogHeader>
                       <DialogTitle className="text-base sm:text-lg">Agregar Producto a {selectedIPV.name}</DialogTitle>
                     </DialogHeader>
-                    {catalogProducts.length === 0 ? (
-                      <div className="text-center py-8">
-                        <ShoppingBag className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-                        <p className="text-gray-600 mb-2">No tienes productos en tu catálogo</p>
-                        <p className="text-sm text-gray-500 mb-4">Crea productos en la pestaña &quot;Catálogo de Productos&quot; primero</p>
-                        <Button variant="outline" onClick={() => {
-                          setIsProductDialogOpen(false)
-                          setMainView("catalog")
-                        }}>
-                          Ir a Catálogo
-                        </Button>
-                      </div>
-                    ) : (
-                      <form onSubmit={async (e) => {
-                        e.preventDefault()
-                        const formData = new FormData(e.currentTarget)
-                        const catalogProductId = formData.get("catalog_product_id") as string
-                        const quantityStr = formData.get("quantity") as string
-                        
-                        if (!catalogProductId) {
-                          toast.error("Por favor selecciona un producto")
-                          return
-                        }
-                        
-                        const quantity = Number.parseInt(quantityStr, 10)
-                        if (isNaN(quantity) || quantity <= 0) {
-                          toast.error("Por favor ingresa una cantidad válida")
-                          return
-                        }
-                        
-                        const success = await addCatalogProductToIPV(catalogProductId, quantity)
-                        if (success) {
-                          setIsProductDialogOpen(false)
-                          ;(e.target as HTMLFormElement).reset()
-                        }
-                      }} className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="catalog_product_id">Producto del Catálogo</Label>
-                          <Select name="catalog_product_id" required>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecciona un producto" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {catalogProducts.map((product) => (
-                                <SelectItem key={product.id} value={product.id}>
-                                  {product.name} - ${formatCurrency(product.price)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="quantity">Cantidad a Enviar</Label>
-                          <Input
-                            id="quantity"
-                            name="quantity"
-                            type="number"
-                            min="1"
-                            step="1"
-                            required
-                            placeholder="¿Cuántos productos envías?"
-                          />
-                        </div>
-                        <Button type="submit" className="w-full" disabled={isCreatingProduct}>
-                          {isCreatingProduct ? "Agregando..." : "Agregar al IPV"}
-                        </Button>
-                      </form>
-                    )}
+                    {(() => {
+                      // Filter out catalog products that are already in this IPV
+                      const catalogProductIdsInIPV = new Set(
+                        ipvProducts
+                          .filter(p => p.catalog_product_id)
+                          .map(p => p.catalog_product_id)
+                      )
+                      const availableCatalogProducts = catalogProducts.filter(
+                        cp => !catalogProductIdsInIPV.has(cp.id)
+                      )
+
+                      if (catalogProducts.length === 0) {
+                        return (
+                          <div className="text-center py-8">
+                            <ShoppingBag className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                            <p className="text-gray-600 mb-2">No tienes productos en tu catálogo</p>
+                            <p className="text-sm text-gray-500 mb-4">Crea productos en la pestaña &quot;Catálogo de Productos&quot; primero</p>
+                            <Button variant="outline" onClick={() => {
+                              setIsProductDialogOpen(false)
+                              setMainView("catalog")
+                            }}>
+                              Ir a Catálogo
+                            </Button>
+                          </div>
+                        )
+                      }
+
+                      if (availableCatalogProducts.length === 0) {
+                        return (
+                          <div className="text-center py-8">
+                            <ShoppingBag className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                            <p className="text-gray-600 mb-2">Todos los productos del catálogo ya están en este IPV</p>
+                            <p className="text-sm text-gray-500 mb-4">No puedes agregar un producto repetido al mismo IPV</p>
+                            <Button variant="outline" onClick={() => setIsProductDialogOpen(false)}>
+                              Cerrar
+                            </Button>
+                          </div>
+                        )
+                      }
+
+                      return (
+                        <form onSubmit={async (e) => {
+                          e.preventDefault()
+                          const formData = new FormData(e.currentTarget)
+                          const catalogProductId = formData.get("catalog_product_id") as string
+                          const quantityStr = formData.get("quantity") as string
+                          
+                          if (!catalogProductId) {
+                            toast.error("Por favor selecciona un producto")
+                            return
+                          }
+                          
+                          const quantity = Number.parseInt(quantityStr, 10)
+                          if (isNaN(quantity) || quantity <= 0) {
+                            toast.error("Por favor ingresa una cantidad válida")
+                            return
+                          }
+                          
+                          const success = await addCatalogProductToIPV(catalogProductId, quantity)
+                          if (success) {
+                            setIsProductDialogOpen(false)
+                            ;(e.target as HTMLFormElement).reset()
+                          }
+                        }} className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="catalog_product_id">Producto del Catálogo</Label>
+                            <Select name="catalog_product_id" required>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecciona un producto" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {availableCatalogProducts.map((product) => (
+                                  <SelectItem key={product.id} value={product.id}>
+                                    {product.name} - ${formatCurrency(product.price)}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="quantity">Cantidad a Enviar</Label>
+                            <Input
+                              id="quantity"
+                              name="quantity"
+                              type="number"
+                              min="1"
+                              step="1"
+                              required
+                              placeholder="¿Cuántos productos envías?"
+                            />
+                          </div>
+                          <Button type="submit" className="w-full" disabled={isCreatingProduct}>
+                            {isCreatingProduct ? "Agregando..." : "Agregar al IPV"}
+                          </Button>
+                        </form>
+                      )
+                    })()}
                   </DialogContent>
                 </Dialog>
               </div>
