@@ -76,8 +76,7 @@ export function IPVSelector({
         handleSelectIPV(ipvData)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []) // Run only once on mount - intentionally empty to avoid re-running
+  }, [handleSelectIPV, ipvsWithProducts, searchParams, selectedIPV])
 
   // Handle going back from SalesInterface - refresh products for all IPVs
   const handleBack = useCallback(async () => {

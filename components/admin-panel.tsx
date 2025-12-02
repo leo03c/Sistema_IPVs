@@ -107,25 +107,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
     return null
   })
 
-  // Update URL when mainView changes
-  useEffect(() => {
-    if (!selectedIPV) {
-      const newParams = new URLSearchParams(searchParams.toString())
-      newParams.set("view", mainView)
-      router.replace(`?${newParams.toString()}`, { scroll: false })
-    }
-  }, [mainView, selectedIPV, router, searchParams])
-
-  // Update URL when activeTab changes (only when IPV is selected)
-  useEffect(() => {
-    if (selectedIPV) {
-      const newParams = new URLSearchParams(searchParams.toString())
-      newParams.set("tab", activeTab)
-      router.replace(`?${newParams.toString()}`, { scroll: false })
-    }
-  }, [activeTab, selectedIPV, router, searchParams])
-
-  // Update URL when selectedIPV changes
+  // Sync all state changes to URL
   useEffect(() => {
     const newParams = new URLSearchParams(searchParams.toString())
     if (selectedIPV) {
