@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Package, LogOut, Loader2, Lock, LockOpen } from "lucide-react"
@@ -22,46 +22,123 @@ export function IPVSelector({
   const searchParams = useSearchParams()
   const supabase = createClient()
   
-  const ipvFromUrl = searchParams.get("ipv")
-  
-  // Initialize from URL
+  // Inicializar directamente desde URL (como en AdminPanel)
+  const initialIPVId = searchParams.get("ipv")
   const [selectedIPV, setSelectedIPV] = useState<IPVWithProducts | null>(() => {
-    if (ipvFromUrl) {
-      const found = ipvsWithProducts.find(({ ipv }) => ipv.id === ipvFromUrl)
-      return found || null
+    if (initialIPVId) {
+      return ipvsWithProducts.find(({ ipv }) => ipv.id === initialIPVId) || null
     }
     return null
   })
-
+  
   const [isLoading, setIsLoading] = useState(false)
+  const [refreshedProducts, setRefreshedProducts] = useState<Map<string, Product[]>>(new Map())
+  const hasLoadedInitialProducts = useRef(false)
+
+  // Cargar productos frescos si hay un IPV seleccionado desde la URL (solo una vez)
+  useEffect(() => {
+    if (selectedIPV && !hasLoadedInitialProducts.current) {
+      hasLoadedInitialProducts.current = true
+      // Cargar productos frescos en segundo plano
+      const loadFreshProducts = async () => {
+        try {
+          const { data: freshProducts } = await supabase
+            . from("products")
+            .select("*")
+            .eq("ipv_id", selectedIPV. ipv.id)
+            .order("name")
+
+          if (freshProducts) {
+            setRefreshedProducts(prev => new Map(prev).set(selectedIPV.ipv. id, freshProducts as Product[]))
+            setSelectedIPV(prev => prev ? {
+              ...prev,
+              products: freshProducts as Product[]
+            } : null)
+          }
+        } catch (error) {
+          console.error("Error loading fresh products:", error)
+        }
+      }
+      loadFreshProducts()
+    }
+  }, [selectedIPV, supabase])
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await supabase.auth. signOut()
     router.push("/auth/login")
     router.refresh()
   }
 
-  const handleSelectIPV = async (ipvData: IPVWithProducts) => {
+  const loadIPVProducts = useCallback(async (ipvData: IPVWithProducts) => {
     setIsLoading(true)
+    try {
+      const { data: freshProducts } = await supabase
+        . from("products")
+        .select("*")
+        .eq("ipv_id", ipvData. ipv.id)
+        .order("name")
+
+      const products = (freshProducts || []) as Product[]
+      setRefreshedProducts(prev => new Map(prev).set(ipvData.ipv.id, products))
+      
+      setSelectedIPV({
+        ipv: ipvData. ipv,
+        products
+      })
+    } catch (error) {
+      console.error("Error loading products:", error)
+      setSelectedIPV(ipvData)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [supabase])
+
+  const handleSelectIPV = useCallback(async (ipvData: IPVWithProducts) => {
+    await loadIPVProducts(ipvData)
     
-    // Actualizar URL
-    const newParams = new URLSearchParams(searchParams. toString())
+    const newParams = new URLSearchParams(searchParams.toString())
     newParams.set("ipv", ipvData.ipv.id)
     router.replace(`? ${newParams.toString()}`, { scroll: false })
-    
-    setSelectedIPV(ipvData)
-    setIsLoading(false)
-  }
+  }, [loadIPVProducts, searchParams, router])
 
-  const handleBack = () => {
+  const handleBack = useCallback(async () => {
+    setIsLoading(true)
+    setSelectedIPV(null)
+    hasLoadedInitialProducts.current = false
+    
     const newParams = new URLSearchParams(searchParams.toString())
-    newParams.delete("ipv")
+    newParams. delete("ipv")
     newParams.delete("tab")
     router. replace(`?${newParams.toString()}`, { scroll: false })
-    setSelectedIPV(null)
-  }
+    
+    try {
+      const ipvIds = ipvsWithProducts.map(({ ipv }) => ipv.id)
+      const { data: freshProducts } = await supabase
+        . from("products")
+        .select("*")
+        .in("ipv_id", ipvIds)
+        .order("name")
 
-  // Si hay IPV seleccionado, mostrar SalesInterface
+      if (freshProducts) {
+        const productsByIpv = new Map<string, Product[]>()
+        for (const product of freshProducts as Product[]) {
+          const ipvId = product.ipv_id
+          if (ipvId) {
+            if (!productsByIpv.has(ipvId)) {
+              productsByIpv.set(ipvId, [])
+            }
+            productsByIpv.get(ipvId)!.push(product)
+          }
+        }
+        setRefreshedProducts(productsByIpv)
+      }
+    } catch (error) {
+      console. error("Error refreshing products:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [ipvsWithProducts, supabase, searchParams, router])
+
   if (selectedIPV) {
     return (
       <SalesInterface
@@ -73,12 +150,15 @@ export function IPVSelector({
     )
   }
 
+  // ...  resto del código de renderizado (sin cambios)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Header */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Mis Inventarios (IPVs)</h1>
+            <p className="text-xs text-gray-500">Selecciona un inventario para gestionar ventas</p>
           </div>
           <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-600">
             <LogOut className="h-5 w-5" />
@@ -88,7 +168,12 @@ export function IPVSelector({
 
       <div className="p-4">
         {isLoading && (
-          <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
+          <div 
+            className="fixed inset-0 bg-black/20 flex items-center justify-center z-50"
+            role="dialog"
+            aria-label="Cargando productos"
+            aria-live="polite"
+          >
             <div className="bg-white p-4 rounded-lg flex items-center gap-3 shadow-lg">
               <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
               <span className="text-gray-700">Cargando productos...</span>
@@ -96,10 +181,11 @@ export function IPVSelector({
           </div>
         )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {ipvsWithProducts.map(({ ipv, products }) => {
+          {ipvsWithProducts.map(({ ipv, products: initialProducts }) => {
+            const products = refreshedProducts. get(ipv. id) || initialProducts
             const totalProducts = products.length
             const totalStock = products.reduce((sum, p) => sum + p.current_stock, 0)
-            const isIPVClosed = ipv.status === 'closed'
+            const isIPVClosed = ipv. status === 'closed'
             
             return (
               <Card
@@ -120,7 +206,6 @@ export function IPVSelector({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-xs text-gray-400">ID: {ipv. id}</p>
                   {ipv.description && (
                     <p className="text-sm text-gray-600">{ipv.description}</p>
                   )}
