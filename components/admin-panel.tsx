@@ -73,6 +73,12 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const [selectedUserId, setSelectedUserId] = useState<string>("")
   const [selectedIPV, setSelectedIPV] = useState<IPV | null>(null)
   const [activeTab, setActiveTab] = useState<"products" | "reports">("products")
+  const [isCreatingIPV, setIsCreatingIPV] = useState(false)
+  const [isCreatingProduct, setIsCreatingProduct] = useState(false)
+  const [isUpdatingProduct, setIsUpdatingProduct] = useState(false)
+  const [isDeletingIPV, setIsDeletingIPV] = useState<string | null>(null)
+  const [isDeletingProduct, setIsDeletingProduct] = useState<string | null>(null)
+  const [isTogglingStatus, setIsTogglingStatus] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -103,16 +109,21 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   }
 
   const deleteIPV = async (ipvId: string) => {
-    const { error } = await supabase.from("ipvs").delete().eq("id", ipvId)
+    setIsDeletingIPV(ipvId)
+    try {
+      const { error } = await supabase.from("ipvs").delete().eq("id", ipvId)
 
-    if (!error) {
-      setIpvs(ipvs.filter((ipv) => ipv.id !== ipvId))
-      // Products are cascade deleted in database (ON DELETE CASCADE in foreign key)
-      // Update local state to reflect this
-      setProducts(products.filter((p) => p.ipv_id !== ipvId))
-    } else {
-      console.error("Error deleting IPV:", error)
-      alert("Error al eliminar el IPV: " + error.message)
+      if (!error) {
+        setIpvs(ipvs.filter((ipv) => ipv.id !== ipvId))
+        // Products are cascade deleted in database (ON DELETE CASCADE in foreign key)
+        // Update local state to reflect this
+        setProducts(products.filter((p) => p.ipv_id !== ipvId))
+      } else {
+        console.error("Error deleting IPV:", error)
+        alert("Error al eliminar el IPV: " + error.message)
+      }
+    } finally {
+      setIsDeletingIPV(null)
     }
   }
 
@@ -127,21 +138,26 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 
     const initialStock = Number.parseInt(formData.get("initial_stock") as string)
 
-    const { data, error } = await supabase.from("products").insert({
-      ipv_id: selectedIPV.id,
-      name: formData.get("name") as string,
-      price: Number.parseFloat(formData.get("price") as string),
-      initial_stock: initialStock,
-      current_stock: initialStock,
-    }).select()
+    setIsCreatingProduct(true)
+    try {
+      const { data, error } = await supabase.from("products").insert({
+        ipv_id: selectedIPV.id,
+        name: formData.get("name") as string,
+        price: Number.parseFloat(formData.get("price") as string),
+        initial_stock: initialStock,
+        current_stock: initialStock,
+      }).select()
 
-    if (!error && data) {
-      setProducts([...products, data[0]])
-      setIsProductDialogOpen(false)
-      ;(e.target as HTMLFormElement).reset()
-    } else {
-      console.error("Error creating product:", error)
-      alert("Error al crear el producto: " + error?.message)
+      if (!error && data) {
+        setProducts([...products, data[0]])
+        setIsProductDialogOpen(false)
+        ;(e.target as HTMLFormElement).reset()
+      } else {
+        console.error("Error creating product:", error)
+        alert("Error al crear el producto: " + error?.message)
+      }
+    } finally {
+      setIsCreatingProduct(false)
     }
   }
 
@@ -153,41 +169,58 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 
   // Toggle IPV status between open and closed
   const toggleIPVStatus = async (ipvId: string, currentStatus: 'open' | 'closed') => {
-    const newStatus = currentStatus === 'open' ? 'closed' : 'open'
-    const { error } = await supabase.from("ipvs").update({ status: newStatus }).eq("id", ipvId)
+    setIsTogglingStatus(ipvId)
+    try {
+      const newStatus = currentStatus === 'open' ? 'closed' : 'open'
+      const { error } = await supabase.from("ipvs").update({ status: newStatus }).eq("id", ipvId)
 
-    if (!error) {
-      setIpvs(ipvs.map((ipv) => ipv.id === ipvId ? { ...ipv, status: newStatus } : ipv))
-      if (selectedIPV && selectedIPV.id === ipvId) {
-        setSelectedIPV({ ...selectedIPV, status: newStatus })
+      if (!error) {
+        setIpvs(ipvs.map((ipv) => ipv.id === ipvId ? { ...ipv, status: newStatus } : ipv))
+        if (selectedIPV && selectedIPV.id === ipvId) {
+          setSelectedIPV({ ...selectedIPV, status: newStatus })
+        }
+      } else {
+        console.error("Error toggling IPV status:", error)
+        alert("Error al cambiar el estado del IPV: " + error.message)
       }
-    } else {
-      console.error("Error toggling IPV status:", error)
-      alert("Error al cambiar el estado del IPV: " + error.message)
+    } finally {
+      setIsTogglingStatus(null)
     }
   }
 
   // Delete a product
   const deleteProduct = async (productId: string) => {
-    const { error } = await supabase.from("products").delete().eq("id", productId)
+    setIsDeletingProduct(productId)
+    try {
+      const { error } = await supabase.from("products").delete().eq("id", productId)
 
-    if (!error) {
-      setProducts(products.filter((p) => p.id !== productId))
-    } else {
-      console.error("Error deleting product:", error)
-      alert("Error al eliminar el producto: " + error.message)
+      if (!error) {
+        setProducts(products.filter((p) => p.id !== productId))
+      } else {
+        console.error("Error deleting product:", error)
+        alert("Error al eliminar el producto: " + error.message)
+      }
+    } finally {
+      setIsDeletingProduct(null)
     }
   }
 
   // Update a product
-  const updateProduct = async (productId: string, updates: { name?: string; price?: number; initial_stock?: number; current_stock?: number }) => {
-    const { error } = await supabase.from("products").update(updates).eq("id", productId)
+  const updateProduct = async (productId: string, updates: { name?: string; price?: number; initial_stock?: number; current_stock?: number }): Promise<boolean> => {
+    setIsUpdatingProduct(true)
+    try {
+      const { error } = await supabase.from("products").update(updates).eq("id", productId)
 
-    if (!error) {
-      setProducts(products.map((p) => p.id === productId ? { ...p, ...updates } : p))
-    } else {
-      console.error("Error updating product:", error)
-      alert("Error al actualizar el producto: " + error.message)
+      if (!error) {
+        setProducts(products.map((p) => p.id === productId ? { ...p, ...updates } : p))
+        return true
+      } else {
+        console.error("Error updating product:", error)
+        alert("Error al actualizar el producto: " + error.message)
+        return false
+      }
+    } finally {
+      setIsUpdatingProduct(false)
     }
   }
 
@@ -225,12 +258,13 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
-                size="sm" 
+                size="sm"
+                disabled={isTogglingStatus === selectedIPV.id}
                 onClick={() => toggleIPVStatus(selectedIPV.id, selectedIPV.status || 'open')}
                 className={`shrink-0 h-8 sm:h-9 px-2 sm:px-3 ${selectedIPV.status === 'open' ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
               >
                 {selectedIPV.status === 'open' ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
-                <span className="hidden sm:inline sm:ml-2">{selectedIPV.status === 'open' ? 'Cerrar' : 'Abrir'}</span>
+                <span className="hidden sm:inline sm:ml-2">{isTogglingStatus === selectedIPV.id ? '...' : selectedIPV.status === 'open' ? 'Cerrar' : 'Abrir'}</span>
               </Button>
               <Button variant="outline" onClick={handleLogout} size="sm" className="shrink-0 h-8 sm:h-9 px-2 sm:px-3">
                 <LogOut className="h-4 w-4" />
@@ -301,8 +335,8 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                           placeholder="¿Cuántos productos ingresas?"
                         />
                       </div>
-                      <Button type="submit" className="w-full">
-                        Agregar Producto
+                      <Button type="submit" className="w-full" disabled={isCreatingProduct}>
+                        {isCreatingProduct ? "Agregando..." : "Agregar Producto"}
                       </Button>
                     </form>
                   </DialogContent>
@@ -357,9 +391,10 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                                 <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
                                 <AlertDialogAction
                                   className="bg-red-600 hover:bg-red-700"
+                                  disabled={isDeletingProduct === product.id}
                                   onClick={() => deleteProduct(product.id)}
                                 >
-                                  Eliminar
+                                  {isDeletingProduct === product.id ? "Eliminando..." : "Eliminar"}
                                 </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
@@ -395,7 +430,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                     <DialogTitle className="text-base sm:text-lg">Editar Producto</DialogTitle>
                   </DialogHeader>
                   {editingProduct && (
-                    <form onSubmit={(e) => {
+                    <form onSubmit={async (e) => {
                       e.preventDefault()
                       const formData = new FormData(e.currentTarget)
                       const name = formData.get("name")
@@ -408,14 +443,17 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                         return
                       }
                       
-                      updateProduct(editingProduct.id, {
+                      const success = await updateProduct(editingProduct.id, {
                         name: name as string,
                         price: Number.parseFloat(price as string),
                         initial_stock: Number.parseInt(initialStock as string),
                         current_stock: Number.parseInt(currentStock as string),
                       })
-                      setIsEditProductDialogOpen(false)
-                      setEditingProduct(null)
+                      
+                      if (success) {
+                        setIsEditProductDialogOpen(false)
+                        setEditingProduct(null)
+                      }
                     }} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="edit_product_name">Nombre del Producto</Label>
@@ -433,8 +471,8 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                         <Label htmlFor="edit_current_stock">Stock Actual</Label>
                         <Input id="edit_current_stock" name="current_stock" type="number" min="0" defaultValue={editingProduct.current_stock} required />
                       </div>
-                      <Button type="submit" className="w-full">
-                        Guardar Cambios
+                      <Button type="submit" className="w-full" disabled={isUpdatingProduct}>
+                        {isUpdatingProduct ? "Guardando..." : "Guardar Cambios"}
                       </Button>
                     </form>
                   )}
@@ -510,8 +548,8 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                     </SelectContent>
                   </Select>
                 </div>
-                <Button type="submit" className="w-full">
-                  Crear IPV
+                <Button type="submit" className="w-full" disabled={isCreatingIPV}>
+                  {isCreatingIPV ? "Creando..." : "Crear IPV"}
                 </Button>
               </form>
             </DialogContent>
@@ -551,6 +589,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                       <Button
                         variant="ghost"
                         size="icon"
+                        disabled={isTogglingStatus === ipv.id}
                         className={`h-7 w-7 sm:h-8 sm:w-8 shrink-0 ${ipv.status === 'open' ? 'text-orange-500 hover:text-orange-700 hover:bg-orange-50' : 'text-green-500 hover:text-green-700 hover:bg-green-50'}`}
                         onClick={(e) => {
                           e.stopPropagation()
@@ -583,12 +622,13 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                           <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-red-600 hover:bg-red-700"
+                            disabled={isDeletingIPV === ipv.id}
                             onClick={(e) => {
                               e.stopPropagation()
                               deleteIPV(ipv.id)
                             }}
                           >
-                            Eliminar
+                            {isDeletingIPV === ipv.id ? "Eliminando..." : "Eliminar"}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
