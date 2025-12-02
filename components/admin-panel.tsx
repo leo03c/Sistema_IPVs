@@ -19,6 +19,7 @@ import { formatCurrency } from "@/lib/utils"
 import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
 import { toast } from "sonner"
 import type { CatalogProduct } from "@/lib/types"
+import { PDFExportModal } from "@/components/pdf-export-modal"
 
 type Profile = {
   id: string
@@ -1061,6 +1062,7 @@ function IPVReportsSection({
 }) {
   const supabase = createClient()
   const [isLoading, setIsLoading] = useState(false)
+  const [isPDFModalOpen, setIsPDFModalOpen] = useState(false)
   
   // Bill denominations (load from database for the IPV user)
   const [bills, setBills] = useState<BillCount[]>([
@@ -1188,7 +1190,7 @@ function IPVReportsSection({
   )
 
   // Export to PDF function
-  const handleExportPDF = () => {
+  const handleExportPDF = (comment?: string) => {
     const reportData: ReportData = {
       ipvName: ipv.name,
       assignedUserEmail: ipv.user_profile?.email,
@@ -1204,7 +1206,8 @@ function IPVReportsSection({
         paymentMethod: sale.payment_method,
         total: Number(sale.total_amount)
       })),
-      bills
+      bills,
+      comment
     }
     exportReportToPDF(reportData)
   }
@@ -1213,7 +1216,7 @@ function IPVReportsSection({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg sm:text-xl font-semibold">Estadísticas de {ipv.name}</h2>
-        <Button onClick={handleExportPDF} className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
+        <Button onClick={() => setIsPDFModalOpen(true)} className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
           <FileDown className="h-4 w-4" />
           <span className="ml-1">Exportar PDF</span>
         </Button>
@@ -1337,13 +1340,13 @@ function IPVReportsSection({
         <CardHeader>
           <CardTitle className="text-base sm:text-lg flex items-center gap-2">
             <Banknote className="h-5 w-5" />
-            Declaración de Billetes
+            Declaración de Billetes (Solo lectura)
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {bills.map((bill) => (
-              <div key={bill.denomination} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+              <div key={bill.denomination} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg opacity-75">
                 <div className="w-14 flex-shrink-0 text-center">
                   <span className="font-bold text-gray-700 text-sm">${bill.denomination}</span>
                 </div>
@@ -1353,6 +1356,7 @@ function IPVReportsSection({
                     size="icon"
                     onClick={() => updateBillCount(bill.denomination, bill.count - 1)}
                     className="h-8 w-8"
+                    disabled={true}
                   >
                     -
                   </Button>
@@ -1368,12 +1372,14 @@ function IPVReportsSection({
                     className="w-16 text-center"
                     min="0"
                     placeholder="0"
+                    disabled={true}
                   />
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={() => updateBillCount(bill.denomination, bill.count + 1)}
                     className="h-8 w-8"
+                    disabled={true}
                   >
                     +
                   </Button>
@@ -1387,15 +1393,10 @@ function IPVReportsSection({
             ))}
           </div>
           
-          {/* Save Denominations Button */}
-          <Button
-            onClick={saveDenominations}
-            disabled={isLoading}
-            className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
-          >
-            <Save className="h-4 w-4 mr-2" />
-            {isLoading ? "Guardando..." : "Guardar Denominaciones"}
-          </Button>
+          {/* Info message instead of Save button */}
+          <div className="w-full mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center text-sm text-blue-700">
+            Los administradores no pueden modificar las denominaciones. Solo el usuario asignado puede editarlas.
+          </div>
         </CardContent>
       </Card>
 
@@ -1440,6 +1441,13 @@ function IPVReportsSection({
           </CardContent>
         </Card>
       )}
+
+      {/* PDF Export Modal */}
+      <PDFExportModal
+        isOpen={isPDFModalOpen}
+        onClose={() => setIsPDFModalOpen(false)}
+        onExport={handleExportPDF}
+      />
     </div>
   )
 }

@@ -50,6 +50,7 @@ export interface ReportData {
   productStats: ProductStat[]
   salesHistory: SaleHistoryItem[]
   bills?: BillCount[]
+  comment?: string
 }
 
 function formatCurrencyForPdf(amount: number): string {
@@ -59,6 +60,8 @@ function formatCurrencyForPdf(amount: number): string {
 }
 
 const LINE_HEIGHT = 6
+const PAGE_MARGIN = 14
+const PAGE_HEIGHT_LIMIT = 280
 
 export function exportReportToPDF(data: ReportData): void {
   const doc = new jsPDF() as jsPDFWithAutoTable
@@ -196,6 +199,54 @@ export function exportReportToPDF(data: ReportData): void {
       styles: { fontSize: 9 },
       margin: { left: 14 }
     })
+    
+    currentY = doc.lastAutoTable.finalY + 15
+  }
+  
+  // Comment Section
+  if (data.comment && data.comment.trim() !== '') {
+    // Check if we need a new page
+    if (currentY > 220) {
+      doc.addPage()
+      currentY = 20
+    }
+    
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Comentario', 14, currentY)
+    
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    
+    // Split comment text into lines that fit within page width
+    const maxWidth = pageWidth - (PAGE_MARGIN * 2) // margins on each side
+    const commentLines = doc.splitTextToSize(data.comment, maxWidth)
+    
+    currentY += 8
+    
+    // Check if comment fits on current page
+    const commentHeight = commentLines.length * LINE_HEIGHT
+    if (currentY + commentHeight > PAGE_HEIGHT_LIMIT) {
+      doc.addPage()
+      currentY = 20
+      doc.setFontSize(14)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Comentario', 14, currentY)
+      currentY += 8
+      doc.setFontSize(10)
+      doc.setFont('helvetica', 'normal')
+    }
+    
+    // Draw comment in a box
+    const boxPadding = 5
+    const boxY = currentY - 3
+    const boxHeight = commentHeight + boxPadding * 2
+    
+    doc.setDrawColor(200, 200, 200)
+    doc.setFillColor(250, 250, 250)
+    doc.rect(PAGE_MARGIN, boxY, maxWidth, boxHeight, 'FD')
+    
+    doc.text(commentLines, PAGE_MARGIN + boxPadding, currentY + boxPadding)
   }
   
   // Save the PDF

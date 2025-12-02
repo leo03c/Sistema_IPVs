@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
+import { PDFExportModal } from "@/components/pdf-export-modal"
 
 interface PendingPayment {
   id: string
@@ -41,6 +42,8 @@ export function SalesInterface({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cash" | "transfer" | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">("products")
+  const [isPDFModalOpen, setIsPDFModalOpen] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -330,7 +333,7 @@ export function SalesInterface({
   }
 
   // Export to PDF function
-  const handleExportPDF = () => {
+  const handleExportPDF = (comment?: string) => {
     // Calculate product stats for export
     const productStats = products.map((product) => {
       const productSales = sales.filter((s) => s.product_id === product.id)
@@ -370,7 +373,8 @@ export function SalesInterface({
           total: Number(sale.total_amount)
         }
       }),
-      bills
+      bills,
+      comment
     }
     exportReportToPDF(reportData)
   }
@@ -694,7 +698,7 @@ export function SalesInterface({
           <div className="space-y-4">
             {/* Export PDF Button */}
             <div className="flex justify-end">
-              <Button onClick={handleExportPDF} className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
+              <Button onClick={() => setIsPDFModalOpen(true)} className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
                 <FileDown className="h-4 w-4" />
                 <span className="ml-1">Exportar PDF</span>
               </Button>
@@ -1046,6 +1050,13 @@ export function SalesInterface({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* PDF Export Modal */}
+      <PDFExportModal
+        isOpen={isPDFModalOpen}
+        onClose={() => setIsPDFModalOpen(false)}
+        onExport={handleExportPDF}
+      />
     </div>
   )
 }
