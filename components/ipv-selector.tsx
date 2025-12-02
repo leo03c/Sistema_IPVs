@@ -34,8 +34,8 @@ export function IPVSelector({
     router.refresh()
   }
 
-  // Fetch fresh products from the database when selecting an IPV
-  const handleSelectIPV = useCallback(async (ipvData: IPVWithProducts) => {
+  // Shared function to fetch products and update state for an IPV
+  const loadIPVProducts = useCallback(async (ipvData: IPVWithProducts) => {
     setIsLoading(true)
     try {
       // Fetch fresh products from the database
@@ -54,11 +54,6 @@ export function IPVSelector({
         ipv: ipvData.ipv,
         products
       })
-
-      // Update URL to persist selection
-      const newParams = new URLSearchParams(searchParams.toString())
-      newParams.set("ipv", ipvData.ipv.id)
-      router.replace(`?${newParams.toString()}`, { scroll: false })
     } catch (error) {
       console.error("Error loading products:", error)
       // Fallback to cached products if fetch fails
@@ -66,7 +61,17 @@ export function IPVSelector({
     } finally {
       setIsLoading(false)
     }
-  }, [supabase, searchParams, router])
+  }, [supabase])
+
+  // Fetch fresh products from the database when selecting an IPV
+  const handleSelectIPV = useCallback(async (ipvData: IPVWithProducts) => {
+    await loadIPVProducts(ipvData)
+    
+    // Update URL to persist selection
+    const newParams = new URLSearchParams(searchParams.toString())
+    newParams.set("ipv", ipvData.ipv.id)
+    router.replace(`?${newParams.toString()}`, { scroll: false })
+  }, [loadIPVProducts, searchParams, router])
 
   // Restore selected IPV from URL on mount
   useEffect(() => {
@@ -76,35 +81,14 @@ export function IPVSelector({
       hasRestoredFromUrl.current = true
       const ipvData = ipvsWithProducts.find(({ ipv }) => ipv.id === ipvId)
       if (ipvData) {
-        // Note: This logic is similar to handleSelectIPV but inlined to avoid circular dependency.
-        // handleSelectIPV depends on searchParams, which would cause this effect to re-run
-        // on every URL change. We inline the logic here and skip the URL update since
-        // the IPV ID is already in the URL.
-        setIsLoading(true)
-        supabase
-          .from("products")
-          .select("*")
-          .eq("ipv_id", ipvData.ipv.id)
-          .order("name")
-          .then(({ data: freshProducts }) => {
-            const products = (freshProducts || []) as Product[]
-            setRefreshedProducts(prev => new Map(prev).set(ipvData.ipv.id, products))
-            setSelectedIPV({
-              ipv: ipvData.ipv,
-              products
-            })
-          })
-          .catch((error) => {
-            console.error("Error loading products:", error)
-            // Fallback to cached products if fetch fails
-            setSelectedIPV(ipvData)
-          })
-          .finally(() => {
-            setIsLoading(false)
-          })
+        // Use the shared loadIPVProducts function to avoid code duplication.
+        // We don't include loadIPVProducts in dependencies because it only depends
+        // on supabase, which is stable. This prevents the effect from re-running
+        // when searchParams changes (which would happen if we used handleSelectIPV).
+        loadIPVProducts(ipvData)
       }
     }
-  }, [ipvsWithProducts, searchParams, selectedIPV, supabase])
+  }, [ipvsWithProducts, searchParams, selectedIPV, loadIPVProducts])
 
   // Handle going back from SalesInterface - refresh products for all IPVs
   const handleBack = useCallback(async () => {
