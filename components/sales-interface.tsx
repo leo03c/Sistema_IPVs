@@ -81,9 +81,10 @@ export function SalesInterface({
     if (!isClient) return
     
     const newParams = new URLSearchParams(searchParams.toString())
+    newParams.set("ipv", ipv.id)
     newParams.set("tab", activeTab)
     router.replace(`?${newParams.toString()}`, { scroll: false })
-  }, [activeTab, isClient, searchParams, router])
+  }, [activeTab, isClient, searchParams, router, ipv.id])
 
   const loadSales = async () => {
     const { data } = await supabase
