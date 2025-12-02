@@ -130,19 +130,6 @@ export function GuestSalesInterface() {
     setProducts(products.filter((p) => p.id !== id))
   }
 
-  const updateSold = (id: string, type: "cash" | "transfer", delta: number) => {
-    setProducts(
-      products.map((p) => {
-        if (p.id !== id) return p
-        if (type === "cash") {
-          return { ...p, soldCash: Math.max(0, p.soldCash + delta) }
-        } else {
-          return { ...p, soldTransfer: Math.max(0, p.soldTransfer + delta) }
-        }
-      }),
-    )
-  }
-
   const updateBillCount = (denomination: number, count: number) => {
     setBills(bills.map((b) => (b.denomination === denomination ? { ...b, count: Math.max(0, count) } : b)))
   }
@@ -499,28 +486,6 @@ export function GuestSalesInterface() {
                               <p className="text-purple-600 font-medium">{product.soldCash + product.soldTransfer}</p>
                               <p className="text-xs text-gray-500">Total</p>
                             </div>
-                          </div>
-
-                          {/* Quick Add Controls */}
-                          <div className="grid grid-cols-2 gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => updateSold(product.id, "cash", 1)}
-                              className="h-8 text-xs"
-                            >
-                              <Banknote className="h-3 w-3 mr-1" />
-                              +1 Efectivo
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => updateSold(product.id, "transfer", 1)}
-                              className="h-8 text-xs"
-                            >
-                              <CreditCard className="h-3 w-3 mr-1" />
-                              +1 Transfer
-                            </Button>
                           </div>
 
                           {/* Product Total */}
