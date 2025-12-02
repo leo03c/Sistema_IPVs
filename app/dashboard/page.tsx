@@ -34,8 +34,8 @@ export default async function DashboardPage() {
 
   // Admin view - fetch data server-side and pass as props
   if (profile.role === "admin") {
-    // Parallelize independent queries for better performance
-    const [ipvsResult, usersResult] = await Promise.all([
+    // Parallelize all independent queries for better performance
+    const [ipvsResult, usersResult, catalogProductsResult] = await Promise.all([
       // Load only IPVs created by this admin
       supabase
         .from("ipvs")
@@ -43,11 +43,18 @@ export default async function DashboardPage() {
         .eq("created_by", profile.id)
         .order("created_at", { ascending: false }),
       // Load users (only regular users, not admins)
-      supabase.from("profiles").select("*").eq("role", "user")
+      supabase.from("profiles").select("*").eq("role", "user"),
+      // Load catalog products (independent of IPVs)
+      supabase
+        .from("product_catalog")
+        .select("*")
+        .eq("admin_id", profile.id)
+        .order("name")
     ])
 
     const { data: ipvsData, error: ipvsError } = ipvsResult
     const { data: usersData, error: usersError } = usersResult
+    const { data: catalogProductsData, error: catalogProductsError } = catalogProductsResult
 
     if (ipvsError) {
       console.error("Error loading IPVs:", ipvsError)
@@ -55,6 +62,10 @@ export default async function DashboardPage() {
 
     if (usersError) {
       console.error("Error loading users:", usersError)
+    }
+
+    if (catalogProductsError) {
+      console.error("Error loading catalog products:", catalogProductsError)
     }
 
     // Get IPV IDs for filtering products and sales (same method as user dashboard)
@@ -79,16 +90,15 @@ export default async function DashboardPage() {
       products?: { name: string }
     }
 
-    // Parallelize loading of products, sales, and catalog products
+    // Parallelize loading of products and sales based on IPVs
     let productsData: Product[] = []
     let productsError = null
     let salesData: Sale[] = []
     let salesError = null
 
-    // Load catalog products and optionally products/sales based on IPVs
     if (ipvIds.length > 0) {
-      // Parallel queries for all data
-      const [productsResult, salesResult, catalogProductsResult] = await Promise.all([
+      // Parallel queries for products and sales
+      const [productsResult, salesResult] = await Promise.all([
         supabase
           .from("products")
           .select("*")
@@ -97,20 +107,13 @@ export default async function DashboardPage() {
         supabase
           .from("sales")
           .select("*, products(name)")
-          .in("ipv_id", ipvIds),
-        supabase
-          .from("product_catalog")
-          .select("*")
-          .eq("admin_id", profile.id)
-          .order("name")
+          .in("ipv_id", ipvIds)
       ])
 
       productsData = (productsResult.data || []) as Product[]
       productsError = productsResult.error
       salesData = (salesResult.data || []) as Sale[]
       salesError = salesResult.error
-      const catalogProductsData = catalogProductsResult.data
-      const catalogProductsError = catalogProductsResult.error
 
       if (productsError) {
         console.error("Error loading products:", productsError)
@@ -119,32 +122,6 @@ export default async function DashboardPage() {
       if (salesError) {
         console.error("Error loading sales:", salesError)
       }
-
-      if (catalogProductsError) {
-        console.error("Error loading catalog products:", catalogProductsError)
-      }
-
-      return (
-        <AdminPanel
-          profile={profile}
-          initialIpvs={ipvsData || []}
-          initialUsers={usersData || []}
-          initialProducts={productsData || []}
-          initialSales={salesData || []}
-          initialCatalogProducts={catalogProductsData || []}
-        />
-      )
-    }
-
-    // If no IPVs, only load catalog products
-    const { data: catalogProductsData, error: catalogProductsError } = await supabase
-      .from("product_catalog")
-      .select("*")
-      .eq("admin_id", profile.id)
-      .order("name")
-
-    if (catalogProductsError) {
-      console.error("Error loading catalog products:", catalogProductsError)
     }
 
     return (
