@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -352,6 +352,19 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
     return productIds.includes(s.product_id)
   }) : []
 
+  // Get available catalog products (not already in the selected IPV)
+  const availableCatalogProducts = useMemo(() => {
+    if (!selectedIPV) return catalogProducts
+
+    const catalogProductIdsInIPV = new Set(
+      ipvProducts
+        .filter((p): p is Product & { catalog_product_id: string } => p.catalog_product_id != null)
+        .map(p => p.catalog_product_id)
+    )
+    
+    return catalogProducts.filter(cp => !catalogProductIdsInIPV.has(cp.id))
+  }, [selectedIPV, ipvProducts, catalogProducts])
+
   // If an IPV is selected, show the IPV detail view
   if (selectedIPV) {
     return (
@@ -447,6 +460,15 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                           Ir a Catálogo
                         </Button>
                       </div>
+                    ) : availableCatalogProducts.length === 0 ? (
+                      <div className="text-center py-8">
+                        <ShoppingBag className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                        <p className="text-gray-600 mb-2">Todos los productos del catálogo ya están en este IPV</p>
+                        <p className="text-sm text-gray-500 mb-4">No puedes agregar un producto repetido al mismo IPV</p>
+                        <Button variant="outline" onClick={() => setIsProductDialogOpen(false)}>
+                          Cerrar
+                        </Button>
+                      </div>
                     ) : (
                       <form onSubmit={async (e) => {
                         e.preventDefault()
@@ -478,7 +500,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                               <SelectValue placeholder="Selecciona un producto" />
                             </SelectTrigger>
                             <SelectContent>
-                              {catalogProducts.map((product) => (
+                              {availableCatalogProducts.map((product) => (
                                 <SelectItem key={product.id} value={product.id}>
                                   {product.name} - ${formatCurrency(product.price)}
                                 </SelectItem>
