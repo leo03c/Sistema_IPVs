@@ -358,7 +358,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 
     const catalogProductIdsInIPV = new Set(
       ipvProducts
-        .filter(p => p.catalog_product_id != null)
+        .filter(p => p.catalog_product_id !== null && p.catalog_product_id !== undefined)
         .map(p => p.catalog_product_id as string)
     )
     
