@@ -43,13 +43,13 @@ export function SalesInterface({
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isPDFModalOpen, setIsPDFModalOpen] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
   
-  // Get initial tab from URL or default to "products"
-  const initialTab = (searchParams.get("tab") as "products" | "pending" | "stats" | "bills" | "history") || "products"
-  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">(initialTab)
+  // Inicializar con valor por defecto, luego actualizar en el cliente
+  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">("products")
 
   // Bill denominations (local state - same as guest mode)
   const [bills, setBills] = useState<BillCount[]>([
@@ -64,18 +64,29 @@ export function SalesInterface({
     { denomination: 1, count: 0 },
   ])
 
+  // Marcar que estamos en el cliente y leer el tab de la URL
+  useEffect(() => {
+    setIsClient(true)
+    const tabFromUrl = searchParams.get("tab") as "products" | "pending" | "stats" | "bills" | "history"
+    if (tabFromUrl && ["products", "pending", "stats", "bills", "history"].includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl)
+    }
+  }, [])
+
   // Load sales data and denominations
   useEffect(() => {
     loadSales()
     loadDenominations()
   }, [])
 
-  // Update URL when tab changes
+  // Update URL when tab changes (solo en cliente)
   useEffect(() => {
+    if (! isClient) return
+    
     const newParams = new URLSearchParams(searchParams. toString())
     newParams.set("tab", activeTab)
     router.replace(`? ${newParams.toString()}`, { scroll: false })
-  }, [activeTab, router, searchParams])
+  }, [activeTab, isClient])
 
   const loadSales = async () => {
     const { data } = await supabase
@@ -92,27 +103,25 @@ export function SalesInterface({
   const loadDenominations = async () => {
     const { data, error } = await supabase
       . from("denominations")
-      . select("*")
-      .eq("ipv_id", ipv.id)
-      .eq("user_id", userId)
+      .select("*")
+      . eq("ipv_id", ipv. id)
+      . eq("user_id", userId)
 
     if (error) {
-      console. error("Error loading denominations:", error)
+      console.error("Error loading denominations:", error)
       return
     }
 
     if (data && data.length > 0) {
-      // Update bills state with loaded data
       setBills(prevBills => 
         prevBills.map(bill => {
           const found = data.find(d => d.denomination === bill.denomination)
-          return found ? { ...bill, count: found.count } : bill
+          return found ?  { ...bill, count: found.count } : bill
         })
       )
     }
   }
 
-  // Toggle product selection
   const toggleProductSelection = (productId: string) => {
     const newSelected = new Map(selectedProducts)
     if (newSelected.has(productId)) {
@@ -123,7 +132,6 @@ export function SalesInterface({
     setSelectedProducts(newSelected)
   }
 
-  // Update quantity for a selected product
   const updateProductQuantity = (productId: string, quantity: number) => {
     const product = products.find(p => p.id === productId)
     if (! product) return
@@ -137,7 +145,6 @@ export function SalesInterface({
     setSelectedProducts(newSelected)
   }
 
-  // Calculate total for selected products
   const calculateSelectedTotal = () => {
     let total = 0
     selectedProducts.forEach((quantity, productId) => {
@@ -149,15 +156,14 @@ export function SalesInterface({
     return total
   }
 
-  // Create pending payment
   const createPendingPayment = () => {
-    if (selectedProducts.size === 0 || ! selectedPaymentMethod) return
+    if (selectedProducts.size === 0 || !selectedPaymentMethod) return
 
     const items: { product: Product; quantity: number }[] = []
     selectedProducts.forEach((quantity, productId) => {
-      const product = products.find(p => p.id === productId)
+      const product = products.find(p => p. id === productId)
       if (product) {
-        items. push({ product, quantity })
+        items.push({ product, quantity })
       }
     })
 
@@ -171,7 +177,6 @@ export function SalesInterface({
 
     setPendingPayments([...pendingPayments, newPayment])
     
-    // Update local product stock temporarily
     setProducts(prev => 
       prev.map(p => {
         const selectedQty = selectedProducts. get(p.id)
@@ -182,13 +187,11 @@ export function SalesInterface({
       })
     )
 
-    // Reset selection
     setSelectedProducts(new Map())
     setSelectedPaymentMethod(null)
     setIsDialogOpen(false)
   }
 
-  // Confirm pending payment - save to database
   const confirmPayment = async (paymentId: string) => {
     const payment = pendingPayments.find(p => p.id === paymentId)
     if (!payment || isLoading) return
@@ -196,32 +199,28 @@ export function SalesInterface({
     setIsLoading(true)
 
     try {
-      // Insert sales for each item
       for (const item of payment.items) {
-        const { error } = await supabase. from("sales").insert({
-          product_id: item.product.id,
+        const { error } = await supabase. from("sales"). insert({
+          product_id: item. product.id,
           ipv_id: ipv.id,
           user_id: userId,
           quantity: item.quantity,
           payment_method: payment.paymentMethod,
           unit_price: item. product.price,
-          total_amount: item.product.price * item.quantity,
+          total_amount: item.product.price * item. quantity,
         })
 
         if (error) throw error
       }
 
-      // Update payment status
       setPendingPayments(prev => 
         prev.map(p => p.id === paymentId ? { ...p, status: "confirmed" as const } : p)
       )
 
-      // Remove confirmed payment after a short delay
       setTimeout(() => {
         setPendingPayments(prev => prev.filter(p => p. id !== paymentId))
       }, 1500)
 
-      // Reload sales
       await loadSales()
     } catch (error) {
       console. error("Error confirmando pago:", error)
@@ -231,12 +230,10 @@ export function SalesInterface({
     }
   }
 
-  // Cancel pending payment - restore stock
   const cancelPendingPayment = (paymentId: string) => {
     const payment = pendingPayments.find(p => p.id === paymentId)
     if (!payment) return
 
-    // Restore stock
     setProducts(prev => 
       prev.map(p => {
         const item = payment.items. find(i => i.product.id === p.id)
@@ -247,14 +244,12 @@ export function SalesInterface({
       })
     )
 
-    // Remove payment
-    setPendingPayments(prev => prev.filter(p => p. id !== paymentId))
+    setPendingPayments(prev => prev.filter(p => p.id !== paymentId))
   }
 
-  // Open dialog for payment method selection
   const openPaymentDialog = () => {
     if (selectedProducts.size === 0) {
-      toast. warning("Selecciona al menos un producto")
+      toast.warning("Selecciona al menos un producto")
       return
     }
     setIsDialogOpen(true)
@@ -267,7 +262,6 @@ export function SalesInterface({
   const saveDenominations = async () => {
     setIsLoading(true)
     try {
-      // Prepare upsert data for all denominations
       const denominationsData = bills.map(bill => ({
         ipv_id: ipv.id,
         user_id: userId,
@@ -275,7 +269,6 @@ export function SalesInterface({
         count: bill.count
       }))
 
-      // Upsert all denominations (insert or update if exists)
       const { error } = await supabase
         .from("denominations")
         .upsert(denominationsData, {
@@ -290,14 +283,13 @@ export function SalesInterface({
       }
     } catch (error) {
       console.error("Error saving denominations:", error)
-      toast.error("Error al guardar las denominaciones")
+      toast. error("Error al guardar las denominaciones")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Calculate totals
-  const totalCash = sales.filter((s) => s.payment_method === "cash").reduce((sum, s) => sum + Number(s.total_amount), 0)
+  const totalCash = sales.filter((s) => s. payment_method === "cash").reduce((sum, s) => sum + Number(s.total_amount), 0)
 
   const totalTransfer = sales
     .filter((s) => s.payment_method === "transfer")
@@ -305,22 +297,19 @@ export function SalesInterface({
 
   const totalGeneral = totalCash + totalTransfer
 
-  // Calculate bill totals
   const totalBills = bills. reduce((sum, b) => sum + b.denomination * b.count, 0)
 
   const handleLogout = async () => {
-    await supabase. auth.signOut()
+    await supabase.auth.signOut()
     router.push("/auth/login")
     router.refresh()
   }
 
-  // Check if IPV is closed (read-only mode)
   const isIPVClosed = ipv.status === 'closed'
 
-  // Format date for display with exact time
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
-    return date. toLocaleString("es-MX", {
+    return date.toLocaleString("es-MX", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -331,13 +320,11 @@ export function SalesInterface({
     })
   }
 
-  // Export to PDF function
   const handleExportPDF = (comment?: string) => {
-    // Calculate product stats for export
     const productStats = products.map((product) => {
       const productSales = sales.filter((s) => s. product_id === product.id)
-      const cashSales = productSales.filter((s) => s. payment_method === "cash")
-      const transferSales = productSales.filter((s) => s. payment_method === "transfer")
+      const cashSales = productSales.filter((s) => s.payment_method === "cash")
+      const transferSales = productSales.filter((s) => s.payment_method === "transfer")
 
       return {
         name: product.name,
@@ -349,9 +336,8 @@ export function SalesInterface({
       }
     })
 
-    // Sort sales by date (most recent first)
     const sortedSales = [...sales].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at). getTime()
     )
 
     const reportData: ReportData = {
@@ -365,11 +351,11 @@ export function SalesInterface({
       salesHistory: sortedSales. map(sale => {
         const product = products.find(p => p.id === sale.product_id)
         return {
-          date: formatDateTime(sale. created_at),
-          productName: product?.name || "Producto desconocido",
+          date: formatDateTime(sale.created_at),
+          productName: product?. name || "Producto desconocido",
           quantity: sale.quantity,
           paymentMethod: sale. payment_method,
-          total: Number(sale. total_amount)
+          total: Number(sale.total_amount)
         }
       }),
       bills,
@@ -491,7 +477,6 @@ export function SalesInterface({
         {/* Products Tab */}
         {activeTab === "products" && (
           <div className="space-y-4">
-            {/* Selected Products Summary - Fixed at top (only when IPV is open) */}
             {selectedProducts.size > 0 && ! isIPVClosed && (
               <Card className="bg-purple-50 border-purple-200 sticky top-[76px] z-10">
                 <CardContent className="p-4">
@@ -516,8 +501,7 @@ export function SalesInterface({
               </Card>
             )}
 
-            {/* Products List */}
-            {products.length === 0 ? (
+            {products.length === 0 ?  (
               <Card>
                 <CardContent className="py-8 text-center text-gray-500">
                   <p>No hay productos en este inventario</p>
@@ -538,7 +522,6 @@ export function SalesInterface({
                       } ${product.current_stock <= 0 ? 'opacity-50' : ''} ${isIPVClosed ? 'opacity-75' : ''}`}
                     >
                       <div className="flex items-start gap-3">
-                        {/* Checkbox - disabled when IPV is closed */}
                         <div className="pt-1">
                           <Checkbox
                             checked={isSelected}
@@ -548,7 +531,6 @@ export function SalesInterface({
                           />
                         </div>
                         
-                        {/* Product Info */}
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-900 truncate">{product. name}</h3>
                           <p className="text-lg font-bold text-blue-600">${formatCurrency(product. price)}</p>
@@ -571,7 +553,6 @@ export function SalesInterface({
                           </div>
                         </div>
                         
-                        {/* Quantity Controls (when selected) - only shown when IPV is open */}
                         {isSelected && ! isIPVClosed && (
                           <div className="flex items-center gap-2">
                             <Button
@@ -606,7 +587,7 @@ export function SalesInterface({
         {/* Pending Payments Tab */}
         {activeTab === "pending" && (
           <div className="space-y-4">
-            {pendingPayments.length === 0 ?  (
+            {pendingPayments. length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-gray-500">
                   <Clock className="h-10 w-10 mx-auto mb-3 text-gray-400" />
@@ -624,7 +605,6 @@ export function SalesInterface({
                     }`}
                   >
                     <CardContent className="p-4">
-                      {/* Header */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           {payment.status === "confirmed" ?  (
@@ -648,21 +628,19 @@ export function SalesInterface({
                           </Badge>
                         </div>
                         <span className="text-xl font-bold">
-                          ${formatCurrency(payment.total)}
+                          ${formatCurrency(payment. total)}
                         </span>
                       </div>
 
-                      {/* Items */}
                       <div className="space-y-1 mb-3">
                         {payment.items.map((item, idx) => (
                           <div key={idx} className="flex justify-between text-sm">
                             <span>{item.product.name} x{item.quantity}</span>
-                            <span className="font-medium">${formatCurrency(item.product. price * item.quantity)}</span>
+                            <span className="font-medium">${formatCurrency(item. product.price * item.quantity)}</span>
                           </div>
                         ))}
                       </div>
 
-                      {/* Actions - disabled when IPV is closed */}
                       {payment.status === "pending" && (
                         <div className="flex gap-2">
                           <Button
@@ -695,7 +673,6 @@ export function SalesInterface({
         {/* Statistics Tab */}
         {activeTab === "stats" && (
           <div className="space-y-4">
-            {/* Export PDF Button */}
             <div className="flex justify-end">
               <Button onClick={() => setIsPDFModalOpen(true)} className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
                 <FileDown className="h-4 w-4" />
@@ -711,14 +688,13 @@ export function SalesInterface({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Summary by payment type */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-green-50 rounded-lg p-4 text-center">
                     <Banknote className="h-8 w-8 mx-auto mb-2 text-green-600" />
                     <p className="text-sm text-green-700 font-medium">Total Efectivo</p>
                     <p className="text-2xl font-bold text-green-800">${formatCurrency(totalCash)}</p>
                     <p className="text-xs text-green-600 mt-1">
-                      {sales.filter((s) => s. payment_method === "cash").reduce((sum, s) => sum + s. quantity, 0)} unidades
+                      {sales.filter((s) => s. payment_method === "cash").reduce((sum, s) => sum + s.quantity, 0)} unidades
                     </p>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4 text-center">
@@ -731,19 +707,17 @@ export function SalesInterface({
                   </div>
                 </div>
 
-                {/* Grand Total */}
                 <div className="bg-purple-100 rounded-lg p-4 text-center">
                   <DollarSign className="h-10 w-10 mx-auto mb-2 text-purple-600" />
                   <p className="text-lg text-purple-700 font-medium">Total General</p>
                   <p className="text-3xl font-bold text-purple-800">${formatCurrency(totalGeneral)}</p>
                   <p className="text-sm text-purple-600 mt-1">
-                    {sales.reduce((sum, s) => sum + s.quantity, 0)} unidades vendidas
+                    {sales.reduce((sum, s) => sum + s. quantity, 0)} unidades vendidas
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Per Product Statistics */}
             {products.length > 0 && (
               <Card>
                 <CardHeader>
@@ -756,7 +730,7 @@ export function SalesInterface({
                       const cashSales = productSales.filter((s) => s.payment_method === "cash")
                       const transferSales = productSales.filter((s) => s. payment_method === "transfer")
                       const cashQuantity = cashSales.reduce((sum, s) => sum + s.quantity, 0)
-                      const transferQuantity = transferSales.reduce((sum, s) => sum + s.quantity, 0)
+                      const transferQuantity = transferSales. reduce((sum, s) => sum + s.quantity, 0)
                       const cashAmount = cashSales.reduce((sum, s) => sum + Number(s.total_amount), 0)
                       const transferAmount = transferSales.reduce((sum, s) => sum + Number(s.total_amount), 0)
 
@@ -855,7 +829,6 @@ export function SalesInterface({
               </CardContent>
             </Card>
 
-            {/* Save Button */}
             <Button 
               onClick={saveDenominations}
               disabled={isLoading || isIPVClosed}
@@ -865,20 +838,18 @@ export function SalesInterface({
               {isLoading ? "Guardando..." : "Guardar Denominaciones"}
             </Button>
 
-            {/* Bills Total */}
             <Card className="bg-green-500 text-white">
               <CardContent className="p-4">
                 <div className="text-center">
                   <p className="text-lg opacity-90">Total en Billetes</p>
                   <p className="text-4xl font-bold">${totalBills.toLocaleString()}</p>
                   <p className="text-sm opacity-75 mt-2">
-                    {bills. reduce((sum, b) => sum + b.count, 0)} billetes totales
+                    {bills.reduce((sum, b) => sum + b.count, 0)} billetes totales
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Comparison with Cash Sales */}
             {totalCash > 0 && (
               <Card>
                 <CardContent className="p-4">
@@ -934,7 +905,7 @@ export function SalesInterface({
                         const product = products.find(p => p.id === sale.product_id)
                         const saleDate = new Date(sale.created_at)
                         return (
-                          <div key={sale. id} className="border rounded-lg p-3 hover:bg-gray-50">
+                          <div key={sale.id} className="border rounded-lg p-3 hover:bg-gray-50">
                             <div className="flex items-center justify-between mb-2">
                               <span className="font-medium">{product?. name || "Producto"}</span>
                               <Badge 
@@ -984,7 +955,6 @@ export function SalesInterface({
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Selected Products Summary */}
             <div 
               className="max-h-32 overflow-y-auto space-y-1 text-sm border rounded-md p-2 bg-gray-50"
               role="list"
@@ -1002,7 +972,6 @@ export function SalesInterface({
               })}
             </div>
 
-            {/* Payment Method Selection */}
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant={selectedPaymentMethod === "cash" ? "default" : "outline"}
@@ -1018,7 +987,7 @@ export function SalesInterface({
                 variant={selectedPaymentMethod === "transfer" ? "default" : "outline"}
                 onClick={() => setSelectedPaymentMethod("transfer")}
                 className={`h-16 flex-col ${
-                  selectedPaymentMethod === "transfer" ?  "bg-blue-600 hover:bg-blue-700" : ""
+                  selectedPaymentMethod === "transfer" ? "bg-blue-600 hover:bg-blue-700" : ""
                 }`}
               >
                 <CreditCard className="h-6 w-6 mb-1" />
@@ -1039,7 +1008,7 @@ export function SalesInterface({
               </Button>
               <Button
                 onClick={createPendingPayment}
-                disabled={! selectedPaymentMethod}
+                disabled={!selectedPaymentMethod}
                 className="flex-1 bg-orange-500 hover:bg-orange-600"
               >
                 <Clock className="h-4 w-4 mr-1" />
