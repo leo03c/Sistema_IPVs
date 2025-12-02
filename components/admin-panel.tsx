@@ -12,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3, Edit2, Lock, LockOpen, Banknote, FileDown, Save } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3, Edit2, Lock, LockOpen, Banknote, FileDown, Save, ShoppingBag } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
 import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
 import { toast } from "sonner"
+import type { CatalogProduct } from "@/lib/types"
 
 type Profile = {
   id: string
@@ -41,6 +43,7 @@ type Product = {
   initial_stock: number
   current_stock: number
   ipv_id: string
+  catalog_product_id?: string
 }
 
 type Sale = {
@@ -59,25 +62,34 @@ type AdminPanelProps = {
   initialUsers: Profile[]
   initialProducts: Product[]
   initialSales: Sale[]
+  initialCatalogProducts: CatalogProduct[]
 }
 
-export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts, initialSales }: AdminPanelProps) {
+export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts, initialSales, initialCatalogProducts }: AdminPanelProps) {
   const [ipvs, setIpvs] = useState<IPV[]>(initialIpvs)
   const users = initialUsers // Read-only, no state needed
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const sales = initialSales // Read-only, no state needed
+  const [catalogProducts, setCatalogProducts] = useState<CatalogProduct[]>(initialCatalogProducts)
   const [isIPVDialogOpen, setIsIPVDialogOpen] = useState(false)
   const [isProductDialogOpen, setIsProductDialogOpen] = useState(false)
+  const [isCatalogProductDialogOpen, setIsCatalogProductDialogOpen] = useState(false)
   const [isEditProductDialogOpen, setIsEditProductDialogOpen] = useState(false)
+  const [isEditCatalogProductDialogOpen, setIsEditCatalogProductDialogOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [editingCatalogProduct, setEditingCatalogProduct] = useState<CatalogProduct | null>(null)
   const [selectedUserId, setSelectedUserId] = useState<string>("")
   const [selectedIPV, setSelectedIPV] = useState<IPV | null>(null)
   const [activeTab, setActiveTab] = useState<"products" | "reports">("products")
+  const [mainView, setMainView] = useState<"ipvs" | "catalog">("ipvs")
   const [isCreatingIPV, setIsCreatingIPV] = useState(false)
   const [isCreatingProduct, setIsCreatingProduct] = useState(false)
+  const [isCreatingCatalogProduct, setIsCreatingCatalogProduct] = useState(false)
   const [isUpdatingProduct, setIsUpdatingProduct] = useState(false)
+  const [isUpdatingCatalogProduct, setIsUpdatingCatalogProduct] = useState(false)
   const [isDeletingIPV, setIsDeletingIPV] = useState<string | null>(null)
   const [isDeletingProduct, setIsDeletingProduct] = useState<string | null>(null)
+  const [isDeletingCatalogProduct, setIsDeletingCatalogProduct] = useState<string | null>(null)
   const [isTogglingStatus, setIsTogglingStatus] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
@@ -124,6 +136,108 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       }
     } finally {
       setIsDeletingIPV(null)
+    }
+  }
+
+  // Catalog Product CRUD operations
+  const createCatalogProduct = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+
+    setIsCreatingCatalogProduct(true)
+    try {
+      const { data, error } = await supabase.from("product_catalog").insert({
+        admin_id: profile.id,
+        name: formData.get("name") as string,
+        price: Number.parseFloat(formData.get("price") as string),
+        description: formData.get("description") as string || null,
+      }).select()
+
+      if (!error && data) {
+        setCatalogProducts([...catalogProducts, data[0]])
+        setIsCatalogProductDialogOpen(false)
+        ;(e.target as HTMLFormElement).reset()
+        toast.success("Producto agregado al catálogo")
+      } else {
+        console.error("Error creating catalog product:", error)
+        toast.error("Error al crear el producto: " + error?.message)
+      }
+    } finally {
+      setIsCreatingCatalogProduct(false)
+    }
+  }
+
+  const updateCatalogProduct = async (productId: string, updates: { name?: string; price?: number; description?: string }): Promise<boolean> => {
+    setIsUpdatingCatalogProduct(true)
+    try {
+      const { error } = await supabase.from("product_catalog").update(updates).eq("id", productId)
+
+      if (!error) {
+        setCatalogProducts(catalogProducts.map((p) => p.id === productId ? { ...p, ...updates } : p))
+        toast.success("Producto actualizado")
+        return true
+      } else {
+        console.error("Error updating catalog product:", error)
+        toast.error("Error al actualizar el producto: " + error.message)
+        return false
+      }
+    } finally {
+      setIsUpdatingCatalogProduct(false)
+    }
+  }
+
+  const deleteCatalogProduct = async (productId: string) => {
+    setIsDeletingCatalogProduct(productId)
+    try {
+      const { error } = await supabase.from("product_catalog").delete().eq("id", productId)
+
+      if (!error) {
+        setCatalogProducts(catalogProducts.filter((p) => p.id !== productId))
+        toast.success("Producto eliminado del catálogo")
+      } else {
+        console.error("Error deleting catalog product:", error)
+        toast.error("Error al eliminar el producto: " + error.message)
+      }
+    } finally {
+      setIsDeletingCatalogProduct(null)
+    }
+  }
+
+  // Add product from catalog to IPV
+  const addCatalogProductToIPV = async (catalogProductId: string, quantity: number) => {
+    if (!selectedIPV) {
+      toast.error("Por favor selecciona un IPV")
+      return
+    }
+
+    setIsCreatingProduct(true)
+    try {
+      const catalogProduct = catalogProducts.find(p => p.id === catalogProductId)
+      if (!catalogProduct) {
+        toast.error("Producto no encontrado en el catálogo")
+        return
+      }
+
+      const { data, error } = await supabase.from("products").insert({
+        ipv_id: selectedIPV.id,
+        catalog_product_id: catalogProductId,
+        name: catalogProduct.name,
+        price: catalogProduct.price,
+        initial_stock: quantity,
+        current_stock: quantity,
+      }).select()
+
+      if (!error && data) {
+        setProducts([...products, data[0]])
+        toast.success("Producto agregado al IPV")
+        return true
+      } else {
+        console.error("Error adding product to IPV:", error)
+        toast.error("Error al agregar el producto al IPV: " + error?.message)
+        return false
+      }
+    } finally {
+      setIsCreatingProduct(false)
     }
   }
 
@@ -308,37 +422,74 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                   <DialogTrigger asChild>
                     <Button className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
                       <Plus className="h-4 w-4" />
-                      <span className="ml-1">Agregar</span>
+                      <span className="ml-1">Agregar desde Catálogo</span>
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+                  <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle className="text-base sm:text-lg">Agregar Producto a {selectedIPV.name}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={createProduct} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="product_name">Nombre del Producto</Label>
-                        <Input id="product_name" name="name" required />
+                    {catalogProducts.length === 0 ? (
+                      <div className="text-center py-8">
+                        <ShoppingBag className="h-12 w-12 mx-auto text-gray-400 mb-3" />
+                        <p className="text-gray-600 mb-2">No tienes productos en tu catálogo</p>
+                        <p className="text-sm text-gray-500 mb-4">Crea productos en la pestaña &quot;Catálogo de Productos&quot; primero</p>
+                        <Button variant="outline" onClick={() => {
+                          setIsProductDialogOpen(false)
+                          setMainView("catalog")
+                        }}>
+                          Ir a Catálogo
+                        </Button>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="price">Precio</Label>
-                        <Input id="price" name="price" type="number" step="0.01" min="0" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="initial_stock">Cantidad de Productos</Label>
-                        <Input
-                          id="initial_stock"
-                          name="initial_stock"
-                          type="number"
-                          min="0"
-                          required
-                          placeholder="¿Cuántos productos ingresas?"
-                        />
-                      </div>
-                      <Button type="submit" className="w-full" disabled={isCreatingProduct}>
-                        {isCreatingProduct ? "Agregando..." : "Agregar Producto"}
-                      </Button>
-                    </form>
+                    ) : (
+                      <form onSubmit={async (e) => {
+                        e.preventDefault()
+                        const formData = new FormData(e.currentTarget)
+                        const catalogProductId = formData.get("catalog_product_id") as string
+                        const quantity = Number.parseInt(formData.get("quantity") as string)
+                        
+                        if (!catalogProductId) {
+                          toast.error("Por favor selecciona un producto")
+                          return
+                        }
+                        
+                        const success = await addCatalogProductToIPV(catalogProductId, quantity)
+                        if (success) {
+                          setIsProductDialogOpen(false)
+                          ;(e.target as HTMLFormElement).reset()
+                        }
+                      }} className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="catalog_product_id">Producto del Catálogo</Label>
+                          <Select name="catalog_product_id" required>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecciona un producto" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {catalogProducts.map((product) => (
+                                <SelectItem key={product.id} value={product.id}>
+                                  {product.name} - ${formatCurrency(product.price)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="quantity">Cantidad a Enviar</Label>
+                          <Input
+                            id="quantity"
+                            name="quantity"
+                            type="number"
+                            min="1"
+                            required
+                            placeholder="¿Cuántos productos envías?"
+                          />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={isCreatingProduct}>
+                          {isCreatingProduct ? "Agregando..." : "Agregar al IPV"}
+                        </Button>
+                      </form>
+                    )}
                   </DialogContent>
                 </Dialog>
               </div>
@@ -494,7 +645,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
     )
   }
 
-  // Main dashboard view - list of IPVs
+  // Main dashboard view - list of IPVs and Catalog
   return (
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Header */}
@@ -511,9 +662,23 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
-        <div className="flex flex-wrap justify-between items-center gap-2">
-          <h2 className="text-base sm:text-lg md:text-xl font-semibold">Mis Inventarios (IPVs)</h2>
+      <div className="max-w-7xl mx-auto p-3 sm:p-4">
+        <Tabs value={mainView} onValueChange={(v) => setMainView(v as "ipvs" | "catalog")} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="ipvs" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              <span>Mis IPVs</span>
+            </TabsTrigger>
+            <TabsTrigger value="catalog" className="flex items-center gap-2">
+              <ShoppingBag className="h-4 w-4" />
+              <span>Catálogo de Productos</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* IPVs Tab Content */}
+          <TabsContent value="ipvs" className="space-y-3 sm:space-y-4">
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold">Mis Inventarios (IPVs)</h2>
           <Dialog open={isIPVDialogOpen} onOpenChange={(open) => {
             setIsIPVDialogOpen(open)
             if (!open) setSelectedUserId("")
@@ -655,6 +820,167 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
             })}
           </div>
         )}
+          </TabsContent>
+
+          {/* Catalog Tab Content */}
+          <TabsContent value="catalog" className="space-y-3 sm:space-y-4">
+            <div className="flex flex-wrap justify-between items-center gap-2">
+              <h2 className="text-base sm:text-lg md:text-xl font-semibold">Catálogo de Productos</h2>
+              <Dialog open={isCatalogProductDialogOpen} onOpenChange={setIsCatalogProductDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="shrink-0 h-8 sm:h-9 text-xs sm:text-sm px-2 sm:px-3">
+                    <Plus className="h-4 w-4" />
+                    <span className="ml-1">Nuevo Producto</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Crear Producto en Catálogo</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={createCatalogProduct} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="catalog_product_name">Nombre del Producto</Label>
+                      <Input id="catalog_product_name" name="name" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="catalog_product_price">Precio</Label>
+                      <Input id="catalog_product_price" name="price" type="number" step="0.01" min="0" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="catalog_product_description">Descripción (Opcional)</Label>
+                      <Input id="catalog_product_description" name="description" />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isCreatingCatalogProduct}>
+                      {isCreatingCatalogProduct ? "Creando..." : "Crear Producto"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {catalogProducts.length === 0 ? (
+              <Card className="p-4 sm:p-6 text-center">
+                <ShoppingBag className="h-10 w-10 sm:h-12 sm:w-12 mx-auto text-gray-400 mb-3 sm:mb-4" />
+                <p className="text-gray-600 mb-3 sm:mb-4 text-sm sm:text-base">No tienes productos en tu catálogo.</p>
+                <p className="text-xs sm:text-sm text-blue-600">
+                  Crea productos aquí y luego podrás agregarlos a tus IPVs especificando la cantidad.
+                </p>
+              </Card>
+            ) : (
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                {catalogProducts.map((product) => (
+                  <Card key={product.id}>
+                    <CardHeader className="p-3 sm:p-4 pb-2 flex flex-row items-start justify-between space-y-0">
+                      <CardTitle className="text-sm sm:text-base md:text-lg truncate flex-1 pr-2">{product.name}</CardTitle>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                          onClick={() => {
+                            setEditingCatalogProduct(product)
+                            setIsEditCatalogProductDialogOpen(true)
+                          }}
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>¿Eliminar Producto del Catálogo?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta acción eliminará permanentemente &quot;{product.name}&quot; de tu catálogo.
+                                Los productos ya agregados a IPVs no se verán afectados.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                              <AlertDialogCancel className="mt-0">Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-red-600 hover:bg-red-700"
+                                disabled={isDeletingCatalogProduct === product.id}
+                                onClick={() => deleteCatalogProduct(product.id)}
+                              >
+                                {isDeletingCatalogProduct === product.id ? "Eliminando..." : "Eliminar"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-2 p-3 sm:p-4 pt-0">
+                      <p className="text-2xl font-bold text-blue-600">${formatCurrency(product.price)}</p>
+                      {product.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {/* Edit Catalog Product Dialog */}
+            <Dialog open={isEditCatalogProductDialogOpen} onOpenChange={(open) => {
+              setIsEditCatalogProductDialogOpen(open)
+              if (!open) setEditingCatalogProduct(null)
+            }}>
+              <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-base sm:text-lg">Editar Producto del Catálogo</DialogTitle>
+                </DialogHeader>
+                {editingCatalogProduct && (
+                  <form onSubmit={async (e) => {
+                    e.preventDefault()
+                    const formData = new FormData(e.currentTarget)
+                    const name = formData.get("name")
+                    const price = formData.get("price")
+                    const description = formData.get("description")
+                    
+                    if (!name || !price) {
+                      toast.error("Por favor completa todos los campos requeridos")
+                      return
+                    }
+                    
+                    const success = await updateCatalogProduct(editingCatalogProduct.id, {
+                      name: name as string,
+                      price: Number.parseFloat(price as string),
+                      description: description as string || undefined,
+                    })
+                    
+                    if (success) {
+                      setIsEditCatalogProductDialogOpen(false)
+                      setEditingCatalogProduct(null)
+                    }
+                  }} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_catalog_product_name">Nombre del Producto</Label>
+                      <Input id="edit_catalog_product_name" name="name" defaultValue={editingCatalogProduct.name} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_catalog_product_price">Precio</Label>
+                      <Input id="edit_catalog_product_price" name="price" type="number" step="0.01" min="0" defaultValue={editingCatalogProduct.price} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit_catalog_product_description">Descripción (Opcional)</Label>
+                      <Input id="edit_catalog_product_description" name="description" defaultValue={editingCatalogProduct.description || ""} />
+                    </div>
+                    <Button type="submit" className="w-full" disabled={isUpdatingCatalogProduct}>
+                      {isUpdatingCatalogProduct ? "Guardando..." : "Guardar Cambios"}
+                    </Button>
+                  </form>
+                )}
+              </DialogContent>
+            </Dialog>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )

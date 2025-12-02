@@ -1,5 +1,17 @@
 // Shared types for the IPV inventory management system
 
+// Product in the admin's catalog (not tied to any IPV)
+export type CatalogProduct = {
+  id: string
+  name: string
+  price: number
+  description?: string
+  admin_id: string
+  created_at?: string
+  updated_at?: string
+}
+
+// Product assigned to an IPV (with stock information)
 export type Product = {
   id: string
   name: string
@@ -7,6 +19,7 @@ export type Product = {
   initial_stock: number
   current_stock: number
   ipv_id?: string
+  catalog_product_id?: string
 }
 
 export type IPV = {
