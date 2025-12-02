@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Package, LogOut, ArrowLeft, Trash2, BarChart3, Edit2, Lock, LockOpen, Banknote, FileDown, Save, ShoppingBag } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { formatCurrency } from "@/lib/utils"
 import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
 import { toast } from "sonner"
@@ -67,6 +67,10 @@ type AdminPanelProps = {
 }
 
 export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts, initialSales, initialCatalogProducts }: AdminPanelProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const supabase = createClient()
+
   const [ipvs, setIpvs] = useState<IPV[]>(initialIpvs)
   const users = initialUsers // Read-only, no state needed
   const [products, setProducts] = useState<Product[]>(initialProducts)
@@ -80,9 +84,6 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [editingCatalogProduct, setEditingCatalogProduct] = useState<CatalogProduct | null>(null)
   const [selectedUserId, setSelectedUserId] = useState<string>("")
-  const [selectedIPV, setSelectedIPV] = useState<IPV | null>(null)
-  const [activeTab, setActiveTab] = useState<"products" | "reports">("products")
-  const [mainView, setMainView] = useState<"ipvs" | "catalog">("ipvs")
   const [isCreatingIPV, setIsCreatingIPV] = useState(false)
   const [isCreatingProduct, setIsCreatingProduct] = useState(false)
   const [isCreatingCatalogProduct, setIsCreatingCatalogProduct] = useState(false)
@@ -92,8 +93,35 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const [isDeletingProduct, setIsDeletingProduct] = useState<string | null>(null)
   const [isDeletingCatalogProduct, setIsDeletingCatalogProduct] = useState<string | null>(null)
   const [isTogglingStatus, setIsTogglingStatus] = useState<string | null>(null)
-  const router = useRouter()
-  const supabase = createClient()
+
+  // Get initial states from URL or default values
+  const initialMainView = (searchParams.get("view") as "ipvs" | "catalog") || "ipvs"
+  const initialActiveTab = (searchParams.get("tab") as "products" | "reports") || "products"
+  const initialSelectedIPVId = searchParams.get("ipv")
+
+  const [mainView, setMainView] = useState<"ipvs" | "catalog">(initialMainView)
+  const [activeTab, setActiveTab] = useState<"products" | "reports">(initialActiveTab)
+  const [selectedIPV, setSelectedIPV] = useState<IPV | null>(() => {
+    if (initialSelectedIPVId) {
+      return initialIpvs.find(ipv => ipv.id === initialSelectedIPVId) || null
+    }
+    return null
+  })
+
+  // Sync all state changes to URL
+  useEffect(() => {
+    const newParams = new URLSearchParams(searchParams.toString())
+    if (selectedIPV) {
+      newParams.set("ipv", selectedIPV.id)
+      newParams.set("tab", activeTab)
+      newParams.delete("view")
+    } else {
+      newParams.delete("ipv")
+      newParams.delete("tab")
+      newParams.set("view", mainView)
+    }
+    router.replace(`?${newParams.toString()}`, { scroll: false })
+  }, [selectedIPV, mainView, activeTab, router, searchParams])
 
   const createIPV = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

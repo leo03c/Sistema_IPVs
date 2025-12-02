@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock, FileDown, Save } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
@@ -42,10 +42,14 @@ export function SalesInterface({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cash" | "transfer" | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">("products")
   const [isPDFModalOpen, setIsPDFModalOpen] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
+  
+  // Get initial tab from URL or default to "products"
+  const initialTab = (searchParams.get("tab") as "products" | "pending" | "stats" | "bills" | "history") || "products"
+  const [activeTab, setActiveTab] = useState<"products" | "pending" | "stats" | "bills" | "history">(initialTab)
 
   // Bill denominations (local state - same as guest mode)
   const [bills, setBills] = useState<BillCount[]>([
@@ -66,12 +70,19 @@ export function SalesInterface({
     loadDenominations()
   }, [])
 
+  // Update URL when tab changes
+  useEffect(() => {
+    const newParams = new URLSearchParams(searchParams. toString())
+    newParams.set("tab", activeTab)
+    router.replace(`? ${newParams.toString()}`, { scroll: false })
+  }, [activeTab, router, searchParams])
+
   const loadSales = async () => {
     const { data } = await supabase
       .from("sales")
-      .select("*")
-      .eq("ipv_id", ipv.id)
-      .order("created_at", { ascending: false })
+      . select("*")
+      .eq("ipv_id", ipv. id)
+      . order("created_at", { ascending: false })
 
     if (data) {
       setSales(data)
@@ -80,13 +91,13 @@ export function SalesInterface({
 
   const loadDenominations = async () => {
     const { data, error } = await supabase
-      .from("denominations")
-      .select("*")
+      . from("denominations")
+      . select("*")
       .eq("ipv_id", ipv.id)
       .eq("user_id", userId)
 
     if (error) {
-      console.error("Error loading denominations:", error)
+      console. error("Error loading denominations:", error)
       return
     }
 
@@ -115,13 +126,13 @@ export function SalesInterface({
   // Update quantity for a selected product
   const updateProductQuantity = (productId: string, quantity: number) => {
     const product = products.find(p => p.id === productId)
-    if (!product) return
+    if (! product) return
     
     const newSelected = new Map(selectedProducts)
     if (quantity <= 0) {
       newSelected.delete(productId)
     } else {
-      newSelected.set(productId, Math.min(quantity, product.current_stock))
+      newSelected.set(productId, Math.min(quantity, product. current_stock))
     }
     setSelectedProducts(newSelected)
   }
@@ -130,7 +141,7 @@ export function SalesInterface({
   const calculateSelectedTotal = () => {
     let total = 0
     selectedProducts.forEach((quantity, productId) => {
-      const product = products.find(p => p.id === productId)
+      const product = products. find(p => p.id === productId)
       if (product) {
         total += product.price * quantity
       }
@@ -140,13 +151,13 @@ export function SalesInterface({
 
   // Create pending payment
   const createPendingPayment = () => {
-    if (selectedProducts.size === 0 || !selectedPaymentMethod) return
+    if (selectedProducts.size === 0 || ! selectedPaymentMethod) return
 
     const items: { product: Product; quantity: number }[] = []
     selectedProducts.forEach((quantity, productId) => {
       const product = products.find(p => p.id === productId)
       if (product) {
-        items.push({ product, quantity })
+        items. push({ product, quantity })
       }
     })
 
@@ -163,7 +174,7 @@ export function SalesInterface({
     // Update local product stock temporarily
     setProducts(prev => 
       prev.map(p => {
-        const selectedQty = selectedProducts.get(p.id)
+        const selectedQty = selectedProducts. get(p.id)
         if (selectedQty) {
           return { ...p, current_stock: p.current_stock - selectedQty }
         }
@@ -187,13 +198,13 @@ export function SalesInterface({
     try {
       // Insert sales for each item
       for (const item of payment.items) {
-        const { error } = await supabase.from("sales").insert({
+        const { error } = await supabase. from("sales").insert({
           product_id: item.product.id,
           ipv_id: ipv.id,
           user_id: userId,
           quantity: item.quantity,
           payment_method: payment.paymentMethod,
-          unit_price: item.product.price,
+          unit_price: item. product.price,
           total_amount: item.product.price * item.quantity,
         })
 
@@ -207,13 +218,13 @@ export function SalesInterface({
 
       // Remove confirmed payment after a short delay
       setTimeout(() => {
-        setPendingPayments(prev => prev.filter(p => p.id !== paymentId))
+        setPendingPayments(prev => prev.filter(p => p. id !== paymentId))
       }, 1500)
 
       // Reload sales
       await loadSales()
     } catch (error) {
-      console.error("Error confirmando pago:", error)
+      console. error("Error confirmando pago:", error)
       toast.error("Error al confirmar el pago")
     } finally {
       setIsLoading(false)
@@ -228,29 +239,29 @@ export function SalesInterface({
     // Restore stock
     setProducts(prev => 
       prev.map(p => {
-        const item = payment.items.find(i => i.product.id === p.id)
+        const item = payment.items. find(i => i.product.id === p.id)
         if (item) {
-          return { ...p, current_stock: p.current_stock + item.quantity }
+          return { ...p, current_stock: p.current_stock + item. quantity }
         }
         return p
       })
     )
 
     // Remove payment
-    setPendingPayments(prev => prev.filter(p => p.id !== paymentId))
+    setPendingPayments(prev => prev.filter(p => p. id !== paymentId))
   }
 
   // Open dialog for payment method selection
   const openPaymentDialog = () => {
     if (selectedProducts.size === 0) {
-      toast.warning("Selecciona al menos un producto")
+      toast. warning("Selecciona al menos un producto")
       return
     }
     setIsDialogOpen(true)
   }
 
   const updateBillCount = (denomination: number, count: number) => {
-    setBills(bills.map((b) => (b.denomination === denomination ? { ...b, count: Math.max(0, count) } : b)))
+    setBills(bills. map((b) => (b.denomination === denomination ? { ...b, count: Math.max(0, count) } : b)))
   }
 
   const saveDenominations = async () => {
@@ -295,10 +306,10 @@ export function SalesInterface({
   const totalGeneral = totalCash + totalTransfer
 
   // Calculate bill totals
-  const totalBills = bills.reduce((sum, b) => sum + b.denomination * b.count, 0)
+  const totalBills = bills. reduce((sum, b) => sum + b.denomination * b.count, 0)
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await supabase. auth.signOut()
     router.push("/auth/login")
     router.refresh()
   }
@@ -309,7 +320,7 @@ export function SalesInterface({
   // Format date for display with exact time
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleString("es-MX", {
+    return date. toLocaleString("es-MX", {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -324,17 +335,17 @@ export function SalesInterface({
   const handleExportPDF = (comment?: string) => {
     // Calculate product stats for export
     const productStats = products.map((product) => {
-      const productSales = sales.filter((s) => s.product_id === product.id)
-      const cashSales = productSales.filter((s) => s.payment_method === "cash")
-      const transferSales = productSales.filter((s) => s.payment_method === "transfer")
+      const productSales = sales.filter((s) => s. product_id === product.id)
+      const cashSales = productSales.filter((s) => s. payment_method === "cash")
+      const transferSales = productSales.filter((s) => s. payment_method === "transfer")
 
       return {
         name: product.name,
         totalSold: product.initial_stock - product.current_stock,
         cashQuantity: cashSales.reduce((sum, s) => sum + s.quantity, 0),
-        cashAmount: cashSales.reduce((sum, s) => sum + Number(s.total_amount), 0),
-        transferQuantity: transferSales.reduce((sum, s) => sum + s.quantity, 0),
-        transferAmount: transferSales.reduce((sum, s) => sum + Number(s.total_amount), 0),
+        cashAmount: cashSales. reduce((sum, s) => sum + Number(s.total_amount), 0),
+        transferQuantity: transferSales. reduce((sum, s) => sum + s.quantity, 0),
+        transferAmount: transferSales. reduce((sum, s) => sum + Number(s.total_amount), 0),
       }
     })
 
@@ -345,20 +356,20 @@ export function SalesInterface({
 
     const reportData: ReportData = {
       ipvName: ipv.name,
-      assignedUserEmail: ipv.user_profile?.email,
+      assignedUserEmail: ipv.user_profile?. email,
       createdByEmail: ipv.created_by_profile?.email,
       totalCash,
       totalTransfer,
       totalGeneral,
       productStats,
-      salesHistory: sortedSales.map(sale => {
+      salesHistory: sortedSales. map(sale => {
         const product = products.find(p => p.id === sale.product_id)
         return {
-          date: formatDateTime(sale.created_at),
+          date: formatDateTime(sale. created_at),
           productName: product?.name || "Producto desconocido",
           quantity: sale.quantity,
-          paymentMethod: sale.payment_method,
-          total: Number(sale.total_amount)
+          paymentMethod: sale. payment_method,
+          total: Number(sale. total_amount)
         }
       }),
       bills,
@@ -374,7 +385,7 @@ export function SalesInterface({
         <div className="bg-orange-100 border-b border-orange-300 px-4 py-2 flex items-center justify-center gap-2">
           <Lock className="h-4 w-4 text-orange-600" />
           <span className="text-sm text-orange-700 font-medium">
-            Este IPV está cerrado. Solo puedes ver la información.
+            Este IPV está cerrado. Solo puedes ver la información. 
           </span>
         </div>
       )}
@@ -391,7 +402,7 @@ export function SalesInterface({
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg font-bold text-gray-900">{ipv.name}</h1>
-                <Badge variant={isIPVClosed ? 'secondary' : 'default'} className={isIPVClosed ? 'bg-gray-500' : 'bg-green-500'}>
+                <Badge variant={isIPVClosed ?  'secondary' : 'default'} className={isIPVClosed ?  'bg-gray-500' : 'bg-green-500'}>
                   {isIPVClosed ? 'Cerrado' : 'Abierto'}
                 </Badge>
               </div>
@@ -433,14 +444,14 @@ export function SalesInterface({
       <div className="px-4 mb-4">
         <div className="grid grid-cols-3 gap-2">
           <Button
-            variant={activeTab === "products" ? "default" : "outline"}
+            variant={activeTab === "products" ?  "default" : "outline"}
             onClick={() => setActiveTab("products")}
             size="sm"
           >
             Productos
           </Button>
           <Button
-            variant={activeTab === "pending" ? "default" : "outline"}
+            variant={activeTab === "pending" ?  "default" : "outline"}
             onClick={() => setActiveTab("pending")}
             className="relative"
             size="sm"
@@ -466,7 +477,7 @@ export function SalesInterface({
             Estadísticas
           </Button>
           <Button
-            variant={activeTab === "bills" ? "default" : "outline"}
+            variant={activeTab === "bills" ?  "default" : "outline"}
             onClick={() => setActiveTab("bills")}
             size="sm"
             className="col-span-2"
@@ -481,7 +492,7 @@ export function SalesInterface({
         {activeTab === "products" && (
           <div className="space-y-4">
             {/* Selected Products Summary - Fixed at top (only when IPV is open) */}
-            {selectedProducts.size > 0 && !isIPVClosed && (
+            {selectedProducts.size > 0 && ! isIPVClosed && (
               <Card className="bg-purple-50 border-purple-200 sticky top-[76px] z-10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -516,7 +527,7 @@ export function SalesInterface({
             ) : (
               <div className="space-y-2">
                 {products.map((product) => {
-                  const isSelected = selectedProducts.has(product.id)
+                  const isSelected = selectedProducts. has(product.id)
                   const selectedQty = selectedProducts.get(product.id) || 0
                   
                   return (
@@ -539,8 +550,8 @@ export function SalesInterface({
                         
                         {/* Product Info */}
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
-                          <p className="text-lg font-bold text-blue-600">${formatCurrency(product.price)}</p>
+                          <h3 className="font-semibold text-gray-900 truncate">{product. name}</h3>
+                          <p className="text-lg font-bold text-blue-600">${formatCurrency(product. price)}</p>
                           <div className="flex gap-3 mt-2 text-xs">
                             <span className="text-gray-600">
                               Entrante: <span className="font-semibold">{product.initial_stock}</span>
@@ -548,7 +559,7 @@ export function SalesInterface({
                             <span className="text-gray-600">
                               Vendidos:{" "}
                               <span className="font-semibold text-green-600">
-                                {product.initial_stock - product.current_stock}
+                                {product.initial_stock - product. current_stock}
                               </span>
                             </span>
                             <span className="text-gray-600">
@@ -561,7 +572,7 @@ export function SalesInterface({
                         </div>
                         
                         {/* Quantity Controls (when selected) - only shown when IPV is open */}
-                        {isSelected && !isIPVClosed && (
+                        {isSelected && ! isIPVClosed && (
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -595,7 +606,7 @@ export function SalesInterface({
         {/* Pending Payments Tab */}
         {activeTab === "pending" && (
           <div className="space-y-4">
-            {pendingPayments.length === 0 ? (
+            {pendingPayments.length === 0 ?  (
               <Card>
                 <CardContent className="py-8 text-center text-gray-500">
                   <Clock className="h-10 w-10 mx-auto mb-3 text-gray-400" />
@@ -616,7 +627,7 @@ export function SalesInterface({
                       {/* Header */}
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          {payment.status === "confirmed" ? (
+                          {payment.status === "confirmed" ?  (
                             <Check className="h-5 w-5 text-green-600" />
                           ) : (
                             <Clock className="h-5 w-5 text-orange-600" />
@@ -646,7 +657,7 @@ export function SalesInterface({
                         {payment.items.map((item, idx) => (
                           <div key={idx} className="flex justify-between text-sm">
                             <span>{item.product.name} x{item.quantity}</span>
-                            <span className="font-medium">${formatCurrency(item.product.price * item.quantity)}</span>
+                            <span className="font-medium">${formatCurrency(item.product. price * item.quantity)}</span>
                           </div>
                         ))}
                       </div>
@@ -707,7 +718,7 @@ export function SalesInterface({
                     <p className="text-sm text-green-700 font-medium">Total Efectivo</p>
                     <p className="text-2xl font-bold text-green-800">${formatCurrency(totalCash)}</p>
                     <p className="text-xs text-green-600 mt-1">
-                      {sales.filter((s) => s.payment_method === "cash").reduce((sum, s) => sum + s.quantity, 0)} unidades
+                      {sales.filter((s) => s. payment_method === "cash").reduce((sum, s) => sum + s. quantity, 0)} unidades
                     </p>
                   </div>
                   <div className="bg-blue-50 rounded-lg p-4 text-center">
@@ -715,7 +726,7 @@ export function SalesInterface({
                     <p className="text-sm text-blue-700 font-medium">Total Transferencia</p>
                     <p className="text-2xl font-bold text-blue-800">${formatCurrency(totalTransfer)}</p>
                     <p className="text-xs text-blue-600 mt-1">
-                      {sales.filter((s) => s.payment_method === "transfer").reduce((sum, s) => sum + s.quantity, 0)} unidades
+                      {sales.filter((s) => s. payment_method === "transfer").reduce((sum, s) => sum + s.quantity, 0)} unidades
                     </p>
                   </div>
                 </div>
@@ -741,16 +752,16 @@ export function SalesInterface({
                 <CardContent>
                   <div className="space-y-3">
                     {products.map((product) => {
-                      const productSales = sales.filter((s) => s.product_id === product.id)
+                      const productSales = sales. filter((s) => s.product_id === product.id)
                       const cashSales = productSales.filter((s) => s.payment_method === "cash")
-                      const transferSales = productSales.filter((s) => s.payment_method === "transfer")
+                      const transferSales = productSales.filter((s) => s. payment_method === "transfer")
                       const cashQuantity = cashSales.reduce((sum, s) => sum + s.quantity, 0)
                       const transferQuantity = transferSales.reduce((sum, s) => sum + s.quantity, 0)
                       const cashAmount = cashSales.reduce((sum, s) => sum + Number(s.total_amount), 0)
                       const transferAmount = transferSales.reduce((sum, s) => sum + Number(s.total_amount), 0)
 
                       return (
-                        <div key={product.id} className="border rounded-lg p-3">
+                        <div key={product. id} className="border rounded-lg p-3">
                           <div className="flex justify-between items-center mb-2">
                             <h4 className="font-semibold">{product.name}</h4>
                             <span className="text-sm text-gray-500">${formatCurrency(product.price)}/u</span>
@@ -812,7 +823,7 @@ export function SalesInterface({
                         <Input
                           type="number"
                           value={bill.count === 0 ? "" : bill.count}
-                          onChange={(e) => updateBillCount(bill.denomination, Number.parseInt(e.target.value) || 0)}
+                          onChange={(e) => updateBillCount(bill. denomination, Number. parseInt(e.target. value) || 0)}
                           onBlur={(e) => {
                             if (e.target.value === "") {
                               updateBillCount(bill.denomination, 0)
@@ -835,7 +846,7 @@ export function SalesInterface({
                       </div>
                       <div className="flex-1 text-right min-w-0">
                         <span className="font-medium text-green-600 text-sm truncate block">
-                          ${(bill.denomination * bill.count).toLocaleString()}
+                          ${(bill.denomination * bill.count). toLocaleString()}
                         </span>
                       </div>
                     </div>
@@ -861,7 +872,7 @@ export function SalesInterface({
                   <p className="text-lg opacity-90">Total en Billetes</p>
                   <p className="text-4xl font-bold">${totalBills.toLocaleString()}</p>
                   <p className="text-sm opacity-75 mt-2">
-                    {bills.reduce((sum, b) => sum + b.count, 0)} billetes totales
+                    {bills. reduce((sum, b) => sum + b.count, 0)} billetes totales
                   </p>
                 </div>
               </CardContent>
@@ -918,14 +929,14 @@ export function SalesInterface({
                 ) : (
                   <div className="space-y-3">
                     {[...sales]
-                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                      .map((sale) => {
+                      .sort((a, b) => new Date(b.created_at). getTime() - new Date(a.created_at).getTime())
+                      . map((sale) => {
                         const product = products.find(p => p.id === sale.product_id)
                         const saleDate = new Date(sale.created_at)
                         return (
-                          <div key={sale.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                          <div key={sale. id} className="border rounded-lg p-3 hover:bg-gray-50">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium">{product?.name || "Producto"}</span>
+                              <span className="font-medium">{product?. name || "Producto"}</span>
                               <Badge 
                                 className={sale.payment_method === "cash" ? "bg-green-500" : "bg-blue-500"}
                               >
@@ -949,7 +960,7 @@ export function SalesInterface({
                                 })}
                               </span>
                               <span className="font-bold">
-                                {sale.quantity} × ${formatCurrency(Number(sale.unit_price))} = ${formatCurrency(Number(sale.total_amount))}
+                                {sale.quantity} × ${formatCurrency(Number(sale.unit_price))} = ${formatCurrency(Number(sale. total_amount))}
                               </span>
                             </div>
                           </div>
@@ -1007,7 +1018,7 @@ export function SalesInterface({
                 variant={selectedPaymentMethod === "transfer" ? "default" : "outline"}
                 onClick={() => setSelectedPaymentMethod("transfer")}
                 className={`h-16 flex-col ${
-                  selectedPaymentMethod === "transfer" ? "bg-blue-600 hover:bg-blue-700" : ""
+                  selectedPaymentMethod === "transfer" ?  "bg-blue-600 hover:bg-blue-700" : ""
                 }`}
               >
                 <CreditCard className="h-6 w-6 mb-1" />
@@ -1028,7 +1039,7 @@ export function SalesInterface({
               </Button>
               <Button
                 onClick={createPendingPayment}
-                disabled={!selectedPaymentMethod}
+                disabled={! selectedPaymentMethod}
                 className="flex-1 bg-orange-500 hover:bg-orange-600"
               >
                 <Clock className="h-4 w-4 mr-1" />

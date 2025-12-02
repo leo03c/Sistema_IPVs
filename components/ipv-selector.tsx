@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Package, LogOut, Loader2, Lock, LockOpen } from "lucide-react"
 import { SalesInterface } from "@/components/sales-interface"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import type { IPVWithProducts, Product } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +23,7 @@ export function IPVSelector({
   // Track refreshed products state to show updated stock counts
   const [refreshedProducts, setRefreshedProducts] = useState<Map<string, Product[]>>(new Map())
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
 
   const handleLogout = async () => {
@@ -32,7 +33,7 @@ export function IPVSelector({
   }
 
   // Fetch fresh products from the database when selecting an IPV
-  const handleSelectIPV = async (ipvData: IPVWithProducts) => {
+  const handleSelectIPV = useCallback(async (ipvData: IPVWithProducts) => {
     setIsLoading(true)
     try {
       // Fetch fresh products from the database
@@ -51,6 +52,11 @@ export function IPVSelector({
         ipv: ipvData.ipv,
         products
       })
+
+      // Update URL to persist selection
+      const newParams = new URLSearchParams(searchParams.toString())
+      newParams.set("ipv", ipvData.ipv.id)
+      router.replace(`?${newParams.toString()}`, { scroll: false })
     } catch (error) {
       console.error("Error loading products:", error)
       // Fallback to cached products if fetch fails
@@ -58,12 +64,30 @@ export function IPVSelector({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [supabase, searchParams, router])
+
+  // Restore selected IPV from URL on mount
+  useEffect(() => {
+    const ipvId = searchParams.get("ipv")
+    // Only restore if we don't have a selected IPV yet (initial mount)
+    if (ipvId && !selectedIPV) {
+      const ipvData = ipvsWithProducts.find(({ ipv }) => ipv.id === ipvId)
+      if (ipvData) {
+        handleSelectIPV(ipvData)
+      }
+    }
+  }, [handleSelectIPV, ipvsWithProducts, searchParams, selectedIPV])
 
   // Handle going back from SalesInterface - refresh products for all IPVs
   const handleBack = useCallback(async () => {
     setIsLoading(true)
     setSelectedIPV(null)
+    
+    // Remove IPV and tab from URL
+    const newParams = new URLSearchParams(searchParams.toString())
+    newParams.delete("ipv")
+    newParams.delete("tab")
+    router.replace(`?${newParams.toString()}`, { scroll: false })
     
     try {
       // Fetch fresh products for all IPVs to update stock counts
@@ -93,7 +117,7 @@ export function IPVSelector({
     } finally {
       setIsLoading(false)
     }
-  }, [ipvsWithProducts, supabase])
+  }, [ipvsWithProducts, supabase, searchParams, router])
 
   // If user selected an IPV, show the sales interface
   if (selectedIPV) {
