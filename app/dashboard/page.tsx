@@ -84,11 +84,10 @@ export default async function DashboardPage() {
     let productsError = null
     let salesData: Sale[] = []
     let salesError = null
-    let catalogProductsData = null
-    let catalogProductsError = null
 
+    // Load catalog products and optionally products/sales based on IPVs
     if (ipvIds.length > 0) {
-      // Parallel queries for products, sales, and catalog products
+      // Parallel queries for all data
       const [productsResult, salesResult, catalogProductsResult] = await Promise.all([
         supabase
           .from("products")
@@ -110,26 +109,39 @@ export default async function DashboardPage() {
       productsError = productsResult.error
       salesData = (salesResult.data || []) as Sale[]
       salesError = salesResult.error
-      catalogProductsData = catalogProductsResult.data
-      catalogProductsError = catalogProductsResult.error
-    } else {
-      // If no IPVs, still load catalog products
-      const result = await supabase
-        .from("product_catalog")
-        .select("*")
-        .eq("admin_id", profile.id)
-        .order("name")
-      catalogProductsData = result.data
-      catalogProductsError = result.error
+      const catalogProductsData = catalogProductsResult.data
+      const catalogProductsError = catalogProductsResult.error
+
+      if (productsError) {
+        console.error("Error loading products:", productsError)
+      }
+
+      if (salesError) {
+        console.error("Error loading sales:", salesError)
+      }
+
+      if (catalogProductsError) {
+        console.error("Error loading catalog products:", catalogProductsError)
+      }
+
+      return (
+        <AdminPanel
+          profile={profile}
+          initialIpvs={ipvsData || []}
+          initialUsers={usersData || []}
+          initialProducts={productsData || []}
+          initialSales={salesData || []}
+          initialCatalogProducts={catalogProductsData || []}
+        />
+      )
     }
 
-    if (productsError) {
-      console.error("Error loading products:", productsError)
-    }
-
-    if (salesError) {
-      console.error("Error loading sales:", salesError)
-    }
+    // If no IPVs, only load catalog products
+    const { data: catalogProductsData, error: catalogProductsError } = await supabase
+      .from("product_catalog")
+      .select("*")
+      .eq("admin_id", profile.id)
+      .order("name")
 
     if (catalogProductsError) {
       console.error("Error loading catalog products:", catalogProductsError)
