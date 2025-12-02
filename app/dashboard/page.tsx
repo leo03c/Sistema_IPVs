@@ -136,6 +136,17 @@ export default async function DashboardPage() {
       error: salesError 
     })
 
+    // Load catalog products for this admin
+    const { data: catalogProductsData, error: catalogProductsError } = await supabase
+      .from("product_catalog")
+      .select("*")
+      .eq("admin_id", profile.id)
+      .order("name")
+
+    if (catalogProductsError) {
+      console.error("Error loading catalog products:", catalogProductsError)
+    }
+
     // 🔵 DEBUG: Datos a pasar al AdminPanel
     console.log("🔵 Dashboard Admin - Datos a pasar:", {
       profileRole: profile.role,
@@ -145,6 +156,7 @@ export default async function DashboardPage() {
       usersCount: usersData?.length || 0,
       productsCount: productsData?.length || 0,
       salesCount: salesData?.length || 0,
+      catalogProductsCount: catalogProductsData?.length || 0,
       ipvIdsExtracted: ipvIds
     })
 
@@ -155,6 +167,7 @@ export default async function DashboardPage() {
         initialUsers={usersData || []}
         initialProducts={productsData || []}
         initialSales={salesData || []}
+        initialCatalogProducts={catalogProductsData || []}
       />
     )
   }
