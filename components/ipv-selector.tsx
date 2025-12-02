@@ -76,7 +76,10 @@ export function IPVSelector({
       hasRestoredFromUrl.current = true
       const ipvData = ipvsWithProducts.find(({ ipv }) => ipv.id === ipvId)
       if (ipvData) {
-        // Inline the IPV selection logic to avoid circular dependency
+        // Note: This logic is similar to handleSelectIPV but inlined to avoid circular dependency.
+        // handleSelectIPV depends on searchParams, which would cause this effect to re-run
+        // on every URL change. We inline the logic here and skip the URL update since
+        // the IPV ID is already in the URL.
         setIsLoading(true)
         supabase
           .from("products")
