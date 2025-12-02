@@ -23,7 +23,7 @@ export function IPVSelector({
   const supabase = createClient()
   
   // Inicializar directamente desde URL (como en AdminPanel)
-  const initialIPVId = searchParams.get("ipv")
+  const initialIPVId = searchParams. get("ipv")
   const [selectedIPV, setSelectedIPV] = useState<IPVWithProducts | null>(() => {
     if (initialIPVId) {
       return ipvsWithProducts.find(({ ipv }) => ipv.id === initialIPVId) || null
@@ -39,13 +39,12 @@ export function IPVSelector({
   useEffect(() => {
     if (selectedIPV && !hasLoadedInitialProducts.current) {
       hasLoadedInitialProducts.current = true
-      // Cargar productos frescos en segundo plano
       const loadFreshProducts = async () => {
         try {
           const { data: freshProducts } = await supabase
             . from("products")
             .select("*")
-            .eq("ipv_id", selectedIPV. ipv.id)
+            .eq("ipv_id", selectedIPV.ipv.id)
             .order("name")
 
           if (freshProducts) {
@@ -64,7 +63,7 @@ export function IPVSelector({
   }, [selectedIPV, supabase])
 
   const handleLogout = async () => {
-    await supabase.auth. signOut()
+    await supabase. auth.signOut()
     router.push("/auth/login")
     router.refresh()
   }
@@ -106,8 +105,8 @@ export function IPVSelector({
     setSelectedIPV(null)
     hasLoadedInitialProducts.current = false
     
-    const newParams = new URLSearchParams(searchParams.toString())
-    newParams. delete("ipv")
+    const newParams = new URLSearchParams(searchParams. toString())
+    newParams.delete("ipv")
     newParams.delete("tab")
     router. replace(`?${newParams.toString()}`, { scroll: false })
     
@@ -139,6 +138,7 @@ export function IPVSelector({
     }
   }, [ipvsWithProducts, supabase, searchParams, router])
 
+  // Si hay un IPV seleccionado, mostrar SalesInterface
   if (selectedIPV) {
     return (
       <SalesInterface
@@ -150,7 +150,6 @@ export function IPVSelector({
     )
   }
 
-  // ...  resto del código de renderizado (sin cambios)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -182,10 +181,10 @@ export function IPVSelector({
         )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {ipvsWithProducts.map(({ ipv, products: initialProducts }) => {
-            const products = refreshedProducts. get(ipv. id) || initialProducts
+            const products = refreshedProducts.get(ipv.id) || initialProducts
             const totalProducts = products.length
             const totalStock = products.reduce((sum, p) => sum + p.current_stock, 0)
-            const isIPVClosed = ipv. status === 'closed'
+            const isIPVClosed = ipv.status === 'closed'
             
             return (
               <Card
@@ -200,14 +199,14 @@ export function IPVSelector({
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-blue-600" />
                     <span className="flex-1">{ipv.name}</span>
-                    <Badge variant={isIPVClosed ?  'secondary' : 'default'} className={isIPVClosed ?  'bg-gray-500' : 'bg-green-500'}>
-                      {isIPVClosed ?  <><Lock className="h-3 w-3 mr-1" />Cerrado</> : <><LockOpen className="h-3 w-3 mr-1" />Abierto</>}
+                    <Badge variant={isIPVClosed ? 'secondary' : 'default'} className={isIPVClosed ?  'bg-gray-500' : 'bg-green-500'}>
+                      {isIPVClosed ? <><Lock className="h-3 w-3 mr-1" />Cerrado</> : <><LockOpen className="h-3 w-3 mr-1" />Abierto</>}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {ipv.description && (
-                    <p className="text-sm text-gray-600">{ipv.description}</p>
+                    <p className="text-sm text-gray-600">{ipv. description}</p>
                   )}
                   <div className="flex gap-4 text-sm">
                     <span className="text-gray-600">
