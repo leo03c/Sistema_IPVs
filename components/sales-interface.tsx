@@ -65,7 +65,7 @@ export function SalesInterface({
     { denomination: 1, count: 0 },
   ])
 
-  // Mark that we are on the client side
+  // Mark that we are on the client side to prevent hydration mismatches during SSR
   useEffect(() => {
     setIsClient(true)
   }, [])
@@ -76,14 +76,14 @@ export function SalesInterface({
     loadDenominations()
   }, [])
 
-  // Update URL when tab changes (solo en cliente)
+  // Update URL when tab changes (only on client side)
   useEffect(() => {
-    if (! isClient) return
+    if (!isClient) return
     
-    const newParams = new URLSearchParams(searchParams. toString())
+    const newParams = new URLSearchParams(searchParams.toString())
     newParams.set("tab", activeTab)
-    router.replace(`? ${newParams.toString()}`, { scroll: false })
-  }, [activeTab, isClient])
+    router.replace(`?${newParams.toString()}`, { scroll: false })
+  }, [activeTab, isClient, searchParams, router])
 
   const loadSales = async () => {
     const { data } = await supabase
