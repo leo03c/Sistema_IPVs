@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Package, LogOut, Loader2, Lock, LockOpen } from "lucide-react"
@@ -18,18 +18,27 @@ export function IPVSelector({
   ipvsWithProducts: IPVWithProducts[]
   userId: string
 }) {
-  const [selectedIPV, setSelectedIPV] = useState<IPVWithProducts | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const supabase = createClient()
+  
+  // Inicializar directamente desde URL (como en AdminPanel)
+  const initialIPVId = searchParams. get("ipv")
+  const [selectedIPV, setSelectedIPV] = useState<IPVWithProducts | null>(() => {
+    if (initialIPVId) {
+      return ipvsWithProducts.find(({ ipv }) => ipv.id === initialIPVId) || null
+    }
+    return null
+  })
+  
   const [isLoading, setIsLoading] = useState(false)
   // Track refreshed products state to show updated stock counts
   const [refreshedProducts, setRefreshedProducts] = useState<Map<string, Product[]>>(new Map())
   // Track if we've already restored from URL on mount to prevent redundant restoration
   const hasRestoredFromUrl = useRef(false)
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const supabase = createClient()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    await supabase. auth.signOut()
     router.push("/auth/login")
     router.refresh()
   }
@@ -41,17 +50,17 @@ export function IPVSelector({
       // Fetch fresh products from the database
       const { data: freshProducts } = await supabase
         .from("products")
-        .select("*")
+        . select("*")
         .eq("ipv_id", ipvData.ipv.id)
         .order("name")
 
       const products = (freshProducts || []) as Product[]
       
       // Update refreshed products cache
-      setRefreshedProducts(prev => new Map(prev).set(ipvData.ipv.id, products))
+      setRefreshedProducts(prev => new Map(prev).set(ipvData. ipv.id, products))
       
       setSelectedIPV({
-        ipv: ipvData.ipv,
+        ipv: ipvData. ipv,
         products
       })
     } catch (error) {
@@ -68,34 +77,17 @@ export function IPVSelector({
     await loadIPVProducts(ipvData)
     
     // Update URL to persist selection
-    const newParams = new URLSearchParams(searchParams.toString())
+    const newParams = new URLSearchParams(searchParams. toString())
     newParams.set("ipv", ipvData.ipv.id)
-    router.replace(`?${newParams.toString()}`, { scroll: false })
+    router.replace(`? ${newParams.toString()}`, { scroll: false })
   }, [loadIPVProducts, searchParams, router])
-
-  // Restore selected IPV from URL on mount
-  useEffect(() => {
-    const ipvId = searchParams.get("ipv")
-    // Only restore once on initial mount, not on subsequent URL changes
-    if (ipvId && !selectedIPV && !hasRestoredFromUrl.current) {
-      hasRestoredFromUrl.current = true
-      const ipvData = ipvsWithProducts.find(({ ipv }) => ipv.id === ipvId)
-      if (ipvData) {
-        // Use the shared loadIPVProducts function to avoid code duplication.
-        // loadIPVProducts only depends on supabase (which is stable), so it won't
-        // recreate when searchParams changes. This prevents the circular dependency
-        // that would occur if we used handleSelectIPV (which depends on searchParams).
-        loadIPVProducts(ipvData)
-      }
-    }
-  }, [ipvsWithProducts, searchParams, selectedIPV, loadIPVProducts])
 
   // Handle going back from SalesInterface - refresh products for all IPVs
   const handleBack = useCallback(async () => {
     setIsLoading(true)
     setSelectedIPV(null)
     // Reset the restoration flag so user can navigate to another IPV after going back
-    hasRestoredFromUrl.current = false
+    hasRestoredFromUrl. current = false
     
     // Remove IPV and tab from URL
     const newParams = new URLSearchParams(searchParams.toString())
@@ -108,7 +100,7 @@ export function IPVSelector({
       const ipvIds = ipvsWithProducts.map(({ ipv }) => ipv.id)
       const { data: freshProducts } = await supabase
         .from("products")
-        .select("*")
+        . select("*")
         .in("ipv_id", ipvIds)
         .order("name")
 
@@ -118,16 +110,16 @@ export function IPVSelector({
         for (const product of freshProducts as Product[]) {
           const ipvId = product.ipv_id
           if (ipvId) {
-            if (!productsByIpv.has(ipvId)) {
+            if (! productsByIpv.has(ipvId)) {
               productsByIpv.set(ipvId, [])
             }
-            productsByIpv.get(ipvId)!.push(product)
+            productsByIpv. get(ipvId)! .push(product)
           }
         }
         setRefreshedProducts(productsByIpv)
       }
     } catch (error) {
-      console.error("Error refreshing products:", error)
+      console. error("Error refreshing products:", error)
     } finally {
       setIsLoading(false)
     }
@@ -137,7 +129,7 @@ export function IPVSelector({
   if (selectedIPV) {
     return (
       <SalesInterface
-        ipv={selectedIPV.ipv}
+        ipv={selectedIPV. ipv}
         initialProducts={selectedIPV.products}
         userId={userId}
         onBack={handleBack}
@@ -171,12 +163,12 @@ export function IPVSelector({
           >
             <div className="bg-white p-4 rounded-lg flex items-center gap-3 shadow-lg">
               <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-              <span className="text-gray-700">Cargando productos...</span>
+              <span className="text-gray-700">Cargando productos... </span>
             </div>
           </div>
         )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {ipvsWithProducts.map(({ ipv, products: initialProducts }) => {
+          {ipvsWithProducts. map(({ ipv, products: initialProducts }) => {
             // Use refreshed products if available, otherwise use initial products
             const products = refreshedProducts.get(ipv.id) || initialProducts
             const totalProducts = products.length
