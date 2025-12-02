@@ -93,6 +93,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const [isDeletingProduct, setIsDeletingProduct] = useState<string | null>(null)
   const [isDeletingCatalogProduct, setIsDeletingCatalogProduct] = useState<string | null>(null)
   const [isTogglingStatus, setIsTogglingStatus] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
 
   // Get initial states from URL or default values
   const initialMainView = (searchParams.get("view") as "ipvs" | "catalog") || "ipvs"
@@ -107,6 +108,11 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
     }
     return null
   })
+
+  // Set client flag on mount
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Sync all state changes to URL
   useEffect(() => {
@@ -1063,6 +1069,7 @@ function IPVReportsSection({
   const supabase = createClient()
   const [isLoading, setIsLoading] = useState(false)
   const [isPDFModalOpen, setIsPDFModalOpen] = useState(false)
+  const [isClient, setIsClient] = useState(false)
   
   // Bill denominations (load from database for the IPV user)
   const [bills, setBills] = useState<BillCount[]>([
@@ -1104,6 +1111,7 @@ function IPVReportsSection({
   }, [ipv.id, ipv.user_id])
 
   useEffect(() => {
+    setIsClient(true)
     loadDenominations()
   }, [loadDenominations])
 
@@ -1314,7 +1322,9 @@ function IPVReportsSection({
                 <tbody>
                   {sortedSales.map((sale) => (
                     <tr key={sale.id} className="border-t hover:bg-gray-50">
-                      <td className="p-2 sm:p-3 text-gray-600 whitespace-nowrap text-xs sm:text-sm">{formatDateTime(sale.created_at)}</td>
+                      <td className="p-2 sm:p-3 text-gray-600 whitespace-nowrap text-xs sm:text-sm">
+                        {isClient ? formatDateTime(sale.created_at) : sale.created_at}
+                      </td>
                       <td className="p-2 sm:p-3 font-medium">{sale.products?.name || "Producto desconocido"}</td>
                       <td className="p-2 sm:p-3 text-center">{sale.quantity}</td>
                       <td className="p-2 sm:p-3 text-center">
