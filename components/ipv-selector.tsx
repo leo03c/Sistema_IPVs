@@ -22,20 +22,12 @@ export function IPVSelector({
   const searchParams = useSearchParams()
   const supabase = createClient()
   
-  // DEBUG - esto DEBE aparecer en consola
-  const ipvFromUrl = searchParams. get("ipv")
-  console.log("=== IPVSelector RENDER ===")
-  console.log("ipvFromUrl:", ipvFromUrl)
-  console.log("ipvsWithProducts:", ipvsWithProducts.map(x => x.ipv.id))
+  const ipvFromUrl = searchParams.get("ipv")
   
-  // Inicializar desde URL
+  // Initialize from URL
   const [selectedIPV, setSelectedIPV] = useState<IPVWithProducts | null>(() => {
-    console.log("=== useState INIT ===")
-    console.log("ipvFromUrl en init:", ipvFromUrl)
-    
     if (ipvFromUrl) {
       const found = ipvsWithProducts.find(({ ipv }) => ipv.id === ipvFromUrl)
-      console.log("found:", found?. ipv?. id)
       return found || null
     }
     return null
@@ -71,26 +63,22 @@ export function IPVSelector({
 
   // Si hay IPV seleccionado, mostrar SalesInterface
   if (selectedIPV) {
-    console.log("Renderizando SalesInterface para:", selectedIPV.ipv.id)
     return (
       <SalesInterface
         ipv={selectedIPV.ipv}
-        initialProducts={selectedIPV. products}
+        initialProducts={selectedIPV.products}
         userId={userId}
         onBack={handleBack}
       />
     )
   }
 
-  console.log("Renderizando lista de IPVs")
-  
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="bg-white shadow-sm border-b sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Mis Inventarios (IPVs)</h1>
-            <p className="text-xs text-gray-500">DEBUG - ipvFromUrl: {ipvFromUrl || "null"}</p>
           </div>
           <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-600">
             <LogOut className="h-5 w-5" />
