@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Package, LogOut, Loader2, Lock, LockOpen } from "lucide-react"
@@ -23,7 +23,7 @@ export function IPVSelector({
   const supabase = createClient()
   
   // Inicializar directamente desde URL (como en AdminPanel)
-  const initialIPVId = searchParams. get("ipv")
+  const initialIPVId = searchParams.get("ipv")
   const [selectedIPV, setSelectedIPV] = useState<IPVWithProducts | null>(() => {
     if (initialIPVId) {
       return ipvsWithProducts.find(({ ipv }) => ipv.id === initialIPVId) || null
@@ -32,32 +32,54 @@ export function IPVSelector({
   })
   
   const [isLoading, setIsLoading] = useState(false)
-  // Track refreshed products state to show updated stock counts
   const [refreshedProducts, setRefreshedProducts] = useState<Map<string, Product[]>>(new Map())
-  // Track if we've already restored from URL on mount to prevent redundant restoration
-  const hasRestoredFromUrl = useRef(false)
+  const hasLoadedInitialProducts = useRef(false)
+
+  // Cargar productos frescos si hay un IPV seleccionado desde la URL (solo una vez)
+  useEffect(() => {
+    if (selectedIPV && !hasLoadedInitialProducts.current) {
+      hasLoadedInitialProducts.current = true
+      // Cargar productos frescos en segundo plano
+      const loadFreshProducts = async () => {
+        try {
+          const { data: freshProducts } = await supabase
+            . from("products")
+            .select("*")
+            .eq("ipv_id", selectedIPV. ipv.id)
+            .order("name")
+
+          if (freshProducts) {
+            setRefreshedProducts(prev => new Map(prev).set(selectedIPV.ipv. id, freshProducts as Product[]))
+            setSelectedIPV(prev => prev ? {
+              ...prev,
+              products: freshProducts as Product[]
+            } : null)
+          }
+        } catch (error) {
+          console.error("Error loading fresh products:", error)
+        }
+      }
+      loadFreshProducts()
+    }
+  }, [selectedIPV, supabase])
 
   const handleLogout = async () => {
-    await supabase. auth.signOut()
+    await supabase.auth. signOut()
     router.push("/auth/login")
     router.refresh()
   }
 
-  // Shared function to fetch products and update state for an IPV
   const loadIPVProducts = useCallback(async (ipvData: IPVWithProducts) => {
     setIsLoading(true)
     try {
-      // Fetch fresh products from the database
       const { data: freshProducts } = await supabase
-        .from("products")
-        . select("*")
-        .eq("ipv_id", ipvData.ipv.id)
+        . from("products")
+        .select("*")
+        .eq("ipv_id", ipvData. ipv.id)
         .order("name")
 
       const products = (freshProducts || []) as Product[]
-      
-      // Update refreshed products cache
-      setRefreshedProducts(prev => new Map(prev).set(ipvData. ipv.id, products))
+      setRefreshedProducts(prev => new Map(prev).set(ipvData.ipv.id, products))
       
       setSelectedIPV({
         ipv: ipvData. ipv,
@@ -65,55 +87,47 @@ export function IPVSelector({
       })
     } catch (error) {
       console.error("Error loading products:", error)
-      // Fallback to cached products if fetch fails
       setSelectedIPV(ipvData)
     } finally {
       setIsLoading(false)
     }
   }, [supabase])
 
-  // Fetch fresh products from the database when selecting an IPV
   const handleSelectIPV = useCallback(async (ipvData: IPVWithProducts) => {
     await loadIPVProducts(ipvData)
     
-    // Update URL to persist selection
-    const newParams = new URLSearchParams(searchParams. toString())
+    const newParams = new URLSearchParams(searchParams.toString())
     newParams.set("ipv", ipvData.ipv.id)
     router.replace(`? ${newParams.toString()}`, { scroll: false })
   }, [loadIPVProducts, searchParams, router])
 
-  // Handle going back from SalesInterface - refresh products for all IPVs
   const handleBack = useCallback(async () => {
     setIsLoading(true)
     setSelectedIPV(null)
-    // Reset the restoration flag so user can navigate to another IPV after going back
-    hasRestoredFromUrl. current = false
+    hasLoadedInitialProducts.current = false
     
-    // Remove IPV and tab from URL
     const newParams = new URLSearchParams(searchParams.toString())
-    newParams.delete("ipv")
+    newParams. delete("ipv")
     newParams.delete("tab")
-    router.replace(`?${newParams.toString()}`, { scroll: false })
+    router. replace(`?${newParams.toString()}`, { scroll: false })
     
     try {
-      // Fetch fresh products for all IPVs to update stock counts
       const ipvIds = ipvsWithProducts.map(({ ipv }) => ipv.id)
       const { data: freshProducts } = await supabase
-        .from("products")
-        . select("*")
+        . from("products")
+        .select("*")
         .in("ipv_id", ipvIds)
         .order("name")
 
       if (freshProducts) {
-        // Group products by IPV ID
         const productsByIpv = new Map<string, Product[]>()
         for (const product of freshProducts as Product[]) {
           const ipvId = product.ipv_id
           if (ipvId) {
-            if (! productsByIpv.has(ipvId)) {
+            if (!productsByIpv.has(ipvId)) {
               productsByIpv.set(ipvId, [])
             }
-            productsByIpv. get(ipvId)! .push(product)
+            productsByIpv.get(ipvId)!.push(product)
           }
         }
         setRefreshedProducts(productsByIpv)
@@ -125,11 +139,10 @@ export function IPVSelector({
     }
   }, [ipvsWithProducts, supabase, searchParams, router])
 
-  // If user selected an IPV, show the sales interface
   if (selectedIPV) {
     return (
       <SalesInterface
-        ipv={selectedIPV. ipv}
+        ipv={selectedIPV.ipv}
         initialProducts={selectedIPV.products}
         userId={userId}
         onBack={handleBack}
@@ -137,7 +150,7 @@ export function IPVSelector({
     )
   }
 
-  // Show IPV selection grid
+  // ...  resto del código de renderizado (sin cambios)
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -163,17 +176,16 @@ export function IPVSelector({
           >
             <div className="bg-white p-4 rounded-lg flex items-center gap-3 shadow-lg">
               <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-              <span className="text-gray-700">Cargando productos... </span>
+              <span className="text-gray-700">Cargando productos...</span>
             </div>
           </div>
         )}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {ipvsWithProducts. map(({ ipv, products: initialProducts }) => {
-            // Use refreshed products if available, otherwise use initial products
-            const products = refreshedProducts.get(ipv.id) || initialProducts
+          {ipvsWithProducts.map(({ ipv, products: initialProducts }) => {
+            const products = refreshedProducts. get(ipv. id) || initialProducts
             const totalProducts = products.length
             const totalStock = products.reduce((sum, p) => sum + p.current_stock, 0)
-            const isIPVClosed = ipv.status === 'closed'
+            const isIPVClosed = ipv. status === 'closed'
             
             return (
               <Card
@@ -188,8 +200,8 @@ export function IPVSelector({
                   <CardTitle className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-blue-600" />
                     <span className="flex-1">{ipv.name}</span>
-                    <Badge variant={isIPVClosed ? 'secondary' : 'default'} className={isIPVClosed ? 'bg-gray-500' : 'bg-green-500'}>
-                      {isIPVClosed ? <><Lock className="h-3 w-3 mr-1" />Cerrado</> : <><LockOpen className="h-3 w-3 mr-1" />Abierto</>}
+                    <Badge variant={isIPVClosed ?  'secondary' : 'default'} className={isIPVClosed ?  'bg-gray-500' : 'bg-green-500'}>
+                      {isIPVClosed ?  <><Lock className="h-3 w-3 mr-1" />Cerrado</> : <><LockOpen className="h-3 w-3 mr-1" />Abierto</>}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
