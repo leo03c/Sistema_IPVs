@@ -60,6 +60,8 @@ function formatCurrencyForPdf(amount: number): string {
 }
 
 const LINE_HEIGHT = 6
+const PAGE_MARGIN = 14
+const PAGE_HEIGHT_LIMIT = 280
 
 export function exportReportToPDF(data: ReportData): void {
   const doc = new jsPDF() as jsPDFWithAutoTable
@@ -217,14 +219,14 @@ export function exportReportToPDF(data: ReportData): void {
     doc.setFont('helvetica', 'normal')
     
     // Split comment text into lines that fit within page width
-    const maxWidth = pageWidth - 28 // 14 margins on each side
+    const maxWidth = pageWidth - (PAGE_MARGIN * 2) // margins on each side
     const commentLines = doc.splitTextToSize(data.comment, maxWidth)
     
     currentY += 8
     
     // Check if comment fits on current page
-    const commentHeight = commentLines.length * 6
-    if (currentY + commentHeight > 280) {
+    const commentHeight = commentLines.length * LINE_HEIGHT
+    if (currentY + commentHeight > PAGE_HEIGHT_LIMIT) {
       doc.addPage()
       currentY = 20
       doc.setFontSize(14)
@@ -242,9 +244,9 @@ export function exportReportToPDF(data: ReportData): void {
     
     doc.setDrawColor(200, 200, 200)
     doc.setFillColor(250, 250, 250)
-    doc.rect(14, boxY, maxWidth, boxHeight, 'FD')
+    doc.rect(PAGE_MARGIN, boxY, maxWidth, boxHeight, 'FD')
     
-    doc.text(commentLines, 14 + boxPadding, currentY + boxPadding)
+    doc.text(commentLines, PAGE_MARGIN + boxPadding, currentY + boxPadding)
   }
   
   // Save the PDF
