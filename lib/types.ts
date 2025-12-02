@@ -16,7 +16,7 @@ export type IPV = {
   status?: 'open' | 'closed'
   user_id?: string
   created_by?: string
-  profiles?: { email: string }
+  user_profile?: { email: string }
   created_by_profile?: { email: string }
 }
 

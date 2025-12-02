@@ -37,7 +37,7 @@ export default async function DashboardPage() {
     // Load only IPVs created by this admin
     const { data: ipvsData, error: ipvsError } = await supabase
       .from("ipvs")
-      .select("*, profiles!ipvs_user_id_fkey(email), created_by_profile:profiles!ipvs_created_by_fkey(email)")
+      .select("*, user_profile:profiles!user_id(email), created_by_profile:profiles!created_by(email)")
       .eq("created_by", profile.id)
       .order("created_at", { ascending: false })
 
@@ -162,7 +162,7 @@ export default async function DashboardPage() {
   // Get ALL IPVs assigned to this user (not just one)
   const { data: ipvs } = await supabase
     .from("ipvs")
-    .select("*, profiles!ipvs_user_id_fkey(email), created_by_profile:profiles!ipvs_created_by_fkey(email)")
+    .select("*, user_profile:profiles!user_id(email), created_by_profile:profiles!created_by(email)")
     .eq("user_id", user.id)
     .order("name")
 

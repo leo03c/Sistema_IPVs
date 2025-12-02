@@ -30,7 +30,7 @@ type IPV = {
   user_id: string
   created_by?: string
   status?: 'open' | 'closed'
-  profiles?: { email: string }
+  user_profile?: { email: string }
   created_by_profile?: { email: string }
 }
 
@@ -91,25 +91,20 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       return
     }
 
-    setIsCreatingIPV(true)
-    try {
-      const { data, error } = await supabase.from("ipvs").insert({
-        name: formData.get("name") as string,
-        user_id: selectedUserId,
-        created_by: profile.id,
-      }).select("*, profiles!ipvs_user_id_fkey(email)")
+    const { data, error } = await supabase.from("ipvs").insert({
+      name: formData.get("name") as string,
+      user_id: selectedUserId,
+      created_by: profile.id,
+    }).select("*, user_profile:profiles!user_id(email), created_by_profile:profiles!created_by(email)")
 
-      if (!error && data) {
-        setIpvs([data[0], ...ipvs])
-        setIsIPVDialogOpen(false)
-        setSelectedUserId("")
-        ;(e.target as HTMLFormElement).reset()
-      } else {
-        console.error("Error creating IPV:", error)
-        alert("Error al crear el IPV: " + error?.message)
-      }
-    } finally {
-      setIsCreatingIPV(false)
+    if (!error && data) {
+      setIpvs([data[0], ...ipvs])
+      setIsIPVDialogOpen(false)
+      setSelectedUserId("")
+      ;(e.target as HTMLFormElement).reset()
+    } else {
+      console.error("Error creating IPV:", error)
+      alert("Error al crear el IPV: " + error?.message)
     }
   }
 
@@ -256,7 +251,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                   </Badge>
                 </div>
                 <p className="text-xs sm:text-sm text-gray-500 truncate">
-                  Asignado a: {selectedIPV.profiles?.email || "Sin asignar"}
+                  Asignado a: {selectedIPV.user_profile?.email || "Sin asignar"}
                 </p>
               </div>
             </div>
@@ -642,7 +637,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
                   </CardHeader>
                   <CardContent className="space-y-2 sm:space-y-3 p-3 sm:p-4 pt-0">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="truncate text-xs flex-1">{ipv.profiles?.email || "Sin asignar"}</Badge>
+                      <Badge variant="secondary" className="truncate text-xs flex-1">{ipv.user_profile?.email || "Sin asignar"}</Badge>
                       <Badge variant={ipv.status === 'open' ? 'default' : 'secondary'} className={`text-xs shrink-0 ${ipv.status === 'open' ? 'bg-green-500' : 'bg-gray-500'}`}>
                         {ipv.status === 'open' ? 'Abierto' : 'Cerrado'}
                       </Badge>
@@ -807,7 +802,7 @@ function IPVReportsSection({
   const handleExportPDF = () => {
     const reportData: ReportData = {
       ipvName: ipv.name,
-      assignedUserEmail: ipv.profiles?.email,
+      assignedUserEmail: ipv.user_profile?.email,
       createdByEmail: ipv.created_by_profile?.email,
       totalCash,
       totalTransfer,
