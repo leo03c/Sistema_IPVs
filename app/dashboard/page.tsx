@@ -34,37 +34,28 @@ export default async function DashboardPage() {
 
   // Admin view - fetch data server-side and pass as props
   if (profile.role === "admin") {
-    // Load only IPVs created by this admin
-    const { data: ipvsData, error: ipvsError } = await supabase
-      .from("ipvs")
-      .select("*, user_profile:profiles!user_id(email), created_by_profile:profiles!created_by(email)")
-      .eq("created_by", profile.id)
-      .order("created_at", { ascending: false })
+    // Parallelize independent queries for better performance
+    const [ipvsResult, usersResult] = await Promise.all([
+      // Load only IPVs created by this admin
+      supabase
+        .from("ipvs")
+        .select("*, user_profile:profiles!user_id(email), created_by_profile:profiles!created_by(email)")
+        .eq("created_by", profile.id)
+        .order("created_at", { ascending: false }),
+      // Load users (only regular users, not admins)
+      supabase.from("profiles").select("*").eq("role", "user")
+    ])
+
+    const { data: ipvsData, error: ipvsError } = ipvsResult
+    const { data: usersData, error: usersError } = usersResult
 
     if (ipvsError) {
       console.error("Error loading IPVs:", ipvsError)
     }
 
-    // 🔵 DEBUG: IPVs cargados
-    console.log("🔵 IPVs cargados:", { 
-      count: ipvsData?.length || 0, 
-      data: ipvsData,
-      error: ipvsError 
-    })
-
-    // Load users (only regular users, not admins)
-    const { data: usersData, error: usersError } = await supabase.from("profiles").select("*").eq("role", "user")
-
     if (usersError) {
       console.error("Error loading users:", usersError)
     }
-
-    // 🔵 DEBUG: Users cargados
-    console.log("🔵 Users cargados:", { 
-      count: usersData?.length || 0, 
-      data: usersData,
-      error: usersError 
-    })
 
     // Get IPV IDs for filtering products and sales (same method as user dashboard)
     const ipvIds = (ipvsData || []).map(ipv => ipv.id)
@@ -88,77 +79,61 @@ export default async function DashboardPage() {
       products?: { name: string }
     }
 
-    // Load products for IPVs created by this admin
+    // Parallelize loading of products, sales, and catalog products
     let productsData: Product[] = []
     let productsError = null
+    let salesData: Sale[] = []
+    let salesError = null
+    let catalogProductsData = null
+    let catalogProductsError = null
+
     if (ipvIds.length > 0) {
+      // Parallel queries for products, sales, and catalog products
+      const [productsResult, salesResult, catalogProductsResult] = await Promise.all([
+        supabase
+          .from("products")
+          .select("*")
+          .in("ipv_id", ipvIds)
+          .order("name"),
+        supabase
+          .from("sales")
+          .select("*, products(name)")
+          .in("ipv_id", ipvIds),
+        supabase
+          .from("product_catalog")
+          .select("*")
+          .eq("admin_id", profile.id)
+          .order("name")
+      ])
+
+      productsData = (productsResult.data || []) as Product[]
+      productsError = productsResult.error
+      salesData = (salesResult.data || []) as Sale[]
+      salesError = salesResult.error
+      catalogProductsData = catalogProductsResult.data
+      catalogProductsError = catalogProductsResult.error
+    } else {
+      // If no IPVs, still load catalog products
       const result = await supabase
-        .from("products")
+        .from("product_catalog")
         .select("*")
-        .in("ipv_id", ipvIds)
+        .eq("admin_id", profile.id)
         .order("name")
-      productsData = (result.data || []) as Product[]
-      productsError = result.error
+      catalogProductsData = result.data
+      catalogProductsError = result.error
     }
 
     if (productsError) {
       console.error("Error loading products:", productsError)
     }
 
-    // 🔵 DEBUG: Products cargados
-    console.log("🔵 Products cargados:", { 
-      count: productsData?.length || 0, 
-      data: productsData,
-      error: productsError,
-      ipvIdsUsed: ipvIds
-    })
-
-    // Load sales for IPVs created by this admin
-    let salesData: Sale[] = []
-    let salesError = null
-    if (ipvIds.length > 0) {
-      const result = await supabase
-        .from("sales")
-        .select("*, products(name)")
-        .in("ipv_id", ipvIds)
-      salesData = (result.data || []) as Sale[]
-      salesError = result.error
-    }
-
     if (salesError) {
       console.error("Error loading sales:", salesError)
     }
 
-    // 🔵 DEBUG: Sales cargados
-    console.log("🔵 Sales cargados:", { 
-      count: salesData?.length || 0, 
-      data: salesData,
-      error: salesError 
-    })
-
-    // Load catalog products for this admin
-    const { data: catalogProductsData, error: catalogProductsError } = await supabase
-      .from("product_catalog")
-      .select("*")
-      .eq("admin_id", profile.id)
-      .order("name")
-
     if (catalogProductsError) {
       console.error("Error loading catalog products:", catalogProductsError)
     }
-
-    // 🔵 DEBUG: Datos a pasar al AdminPanel
-    console.log("🔵 Dashboard Admin - Datos a pasar:", {
-      profileRole: profile.role,
-      profileEmail: profile.email,
-      ipvsCount: ipvsData?.length || 0,
-      ipvsArray: ipvsData,
-      usersCount: usersData?.length || 0,
-      productsCount: productsData?.length || 0,
-      salesCount: salesData?.length || 0,
-      catalogProductsCount: catalogProductsData?.length || 0,
-      ipvIdsExtracted: ipvIds
-    })
 
     return (
       <AdminPanel
