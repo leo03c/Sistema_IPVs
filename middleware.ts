@@ -51,7 +51,9 @@ export async function middleware(request: NextRequest) {
 
   // Redirect authenticated users away from auth pages (login, register)
   // This prevents the back button from taking users to auth pages when they're logged in
-  if (user && request.nextUrl.pathname.startsWith('/auth/')) {
+  // Allow callback and signout routes to work normally
+  const authPagesToRedirect = ['/auth/login', '/auth/register']
+  if (user && authPagesToRedirect.some(path => request.nextUrl.pathname.startsWith(path))) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
