@@ -38,7 +38,16 @@ export async function middleware(request: NextRequest) {
   )
 
   // Refrescar la sesión si está expirada
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Redirect root page to dashboard or login to avoid adding root to history
+  if (request.nextUrl.pathname === '/') {
+    if (user) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    } else {
+      return NextResponse.redirect(new URL('/auth/login', request.url))
+    }
+  }
 
   return supabaseResponse
 }

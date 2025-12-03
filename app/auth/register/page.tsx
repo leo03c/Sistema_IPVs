@@ -42,8 +42,8 @@ export default function RegisterPage() {
         return
       }
 
-      // Successful registration - redirect to dashboard
-      router.push("/dashboard")
+      // Successful registration - redirect to dashboard using replace to avoid back button issues
+      router.replace("/dashboard")
       router.refresh()
     } catch (error) {
       console.error("Registration error:", error)

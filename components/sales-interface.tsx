@@ -15,6 +15,7 @@ import type { Product, Sale, IPV } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
 import { PDFExportModal } from "@/components/pdf-export-modal"
+import { usePreventLoginBack } from "@/lib/hooks/use-prevent-login-back"
 
 interface PendingPayment {
   id: string
@@ -47,6 +48,9 @@ export function SalesInterface({
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  
+  // Prevent navigating back to login page
+  usePreventLoginBack()
   
   // Initialize activeTab from URL params (same pattern as AdminPanel)
   const initialActiveTab = (searchParams.get("tab") as "products" | "pending" | "stats" | "bills" | "history") || "products"
