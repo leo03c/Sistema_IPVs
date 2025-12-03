@@ -544,8 +544,8 @@ export function SalesInterface({
                             </span>
                             <span className="text-gray-600">
                               Restante:{" "}
-                              <span className={`font-semibold ${(product.current_stock - selectedQty) > 5 ? "text-blue-600" : "text-red-600"}`}>
-                                {product.current_stock - selectedQty}
+                              <span className={`font-semibold ${Math.max(0, product.current_stock - selectedQty) > 5 ? "text-blue-600" : "text-red-600"}`}>
+                                {Math.max(0, product.current_stock - selectedQty)}
                               </span>
                             </span>
                           </div>
