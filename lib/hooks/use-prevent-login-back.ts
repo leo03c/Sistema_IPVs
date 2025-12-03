@@ -3,6 +3,8 @@
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
 
+const DASHBOARD_PATH = "/dashboard"
+
 /**
  * Custom hook to prevent users from navigating back to login page
  * when they are authenticated and on the dashboard.
@@ -13,28 +15,27 @@ import { usePathname } from "next/navigation"
  * 
  * It works by replacing the current history entry on mount to ensure
  * the previous page (login) is not in the history stack.
+ * 
+ * Note: This is a supplementary measure. The primary fix is using router.replace()
+ * in the login/register flows to prevent auth pages from being added to history.
  */
 export function usePreventLoginBack() {
   const pathname = usePathname()
 
   useEffect(() => {
     // Only apply this on the main dashboard page (not sub-pages)
-    if (pathname !== "/dashboard") {
+    if (pathname !== DASHBOARD_PATH) {
       return
     }
 
-    // Check if the referrer was a login or auth page
-    const referrer = document.referrer
-    const isFromAuthPage = referrer && (
-      referrer.includes("/auth/login") || 
-      referrer.includes("/auth/register") ||
-      referrer.endsWith("/") // root page that redirects to login
-    )
-
-    if (isFromAuthPage) {
-      // Replace the current history entry to remove the auth page from history
-      // This ensures the back button won't go to login
-      window.history.replaceState(null, "", "/dashboard")
+    // Check if we came from an auth page using session storage (more reliable than referrer)
+    const cameFromAuth = sessionStorage.getItem("came_from_auth")
+    
+    if (cameFromAuth === "true") {
+      // Replace the current history entry to ensure proper navigation
+      window.history.replaceState(null, "", DASHBOARD_PATH)
+      // Clear the flag after use
+      sessionStorage.removeItem("came_from_auth")
     }
   }, [pathname])
 }

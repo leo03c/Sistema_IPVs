@@ -36,6 +36,7 @@ export default function LoginPage() {
       }
 
       // Successful login - redirect to dashboard using replace to avoid back button issues
+      sessionStorage.setItem("came_from_auth", "true")
       router.replace("/dashboard")
       router.refresh()
     } catch (error) {
