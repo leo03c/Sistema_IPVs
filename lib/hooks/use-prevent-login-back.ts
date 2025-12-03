@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
@@ -28,6 +28,8 @@ const DASHBOARD_PATH = "/dashboard"
 export function usePreventLoginBack() {
   const router = useRouter()
   const pathname = usePathname()
+  const isCheckingRef = useRef(false)
+  const supabaseRef = useRef(createClient())
 
   useEffect(() => {
     // Check if we came from an auth page on initial mount
@@ -41,22 +43,31 @@ export function usePreventLoginBack() {
     }
 
     // Handler for browser back/forward button
-    const handlePopState = async (event: PopStateEvent) => {
+    const handlePopState = async () => {
+      // Prevent concurrent executions to avoid race conditions
+      if (isCheckingRef.current) {
+        return
+      }
+
       // Get the target path from the current location
       const targetPath = window.location.pathname
       
       // Check if user is trying to navigate to an auth route
       if (AUTH_ROUTES.includes(targetPath)) {
-        // Check if user is authenticated
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        isCheckingRef.current = true
         
-        if (user) {
-          // User is authenticated, prevent navigation to auth pages
-          // Push the dashboard path to keep user on protected pages
-          event.preventDefault()
-          window.history.pushState(null, "", DASHBOARD_PATH)
-          router.replace(DASHBOARD_PATH)
+        try {
+          // Check if user is authenticated using memoized client
+          const { data: { user } } = await supabaseRef.current.auth.getUser()
+          
+          if (user) {
+            // User is authenticated, redirect to dashboard
+            // Use pushState to counteract the back navigation, then router.replace to update UI
+            window.history.pushState(null, "", DASHBOARD_PATH)
+            router.replace(DASHBOARD_PATH)
+          }
+        } finally {
+          isCheckingRef.current = false
         }
       }
     }
