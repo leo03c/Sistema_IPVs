@@ -18,6 +18,7 @@ const DASHBOARD_PATH = "/dashboard"
  * 
  * Note: This is a supplementary measure. The primary fix is using router.replace()
  * in the login/register flows to prevent auth pages from being added to history.
+ * Additionally, the middleware redirects authenticated users away from auth pages.
  */
 export function usePreventLoginBack() {
   const pathname = usePathname()
