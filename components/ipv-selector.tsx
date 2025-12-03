@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import type { IPVWithProducts, Product } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
+import { usePreventLoginBack } from "@/lib/hooks/use-prevent-login-back"
 
 export function IPVSelector({
   ipvsWithProducts,
@@ -21,6 +22,9 @@ export function IPVSelector({
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  
+  // Prevent navigating back to login page
+  usePreventLoginBack()
   
   // Inicializar directamente desde URL (como en AdminPanel)
   const initialIPVId = searchParams.get("ipv")

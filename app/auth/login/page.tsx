@@ -35,8 +35,9 @@ export default function LoginPage() {
         return
       }
 
-      // Successful login - redirect to dashboard
-      router.push("/dashboard")
+      // Successful login - redirect to dashboard using replace to avoid back button issues
+      sessionStorage.setItem("came_from_auth", "true")
+      router.replace("/dashboard")
       router.refresh()
     } catch (error) {
       console.error("Login error:", error)

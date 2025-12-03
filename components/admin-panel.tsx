@@ -20,6 +20,7 @@ import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-ex
 import { toast } from "sonner"
 import type { CatalogProduct } from "@/lib/types"
 import { PDFExportModal } from "@/components/pdf-export-modal"
+import { usePreventLoginBack } from "@/lib/hooks/use-prevent-login-back"
 
 type Profile = {
   id: string
@@ -70,6 +71,9 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
+  
+  // Prevent navigating back to login page
+  usePreventLoginBack()
 
   const [ipvs, setIpvs] = useState<IPV[]>(initialIpvs)
   const users = initialUsers // Read-only, no state needed
