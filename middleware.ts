@@ -57,6 +57,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // Redirect unauthenticated users trying to access protected pages (dashboard)
+  // to the login page
+  if (!user && request.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/auth/login', request.url))
+  }
+
   return supabaseResponse
 }
 
