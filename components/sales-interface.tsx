@@ -544,9 +544,9 @@ export function SalesInterface({
                             </span>
                             <span className="text-gray-600">
                               Restante:{" "}
-                              <Badge variant={product.current_stock > 5 ? "default" : "destructive"} className="text-xs">
-                                {product.current_stock}
-                              </Badge>
+                              <span className={`font-semibold ${(product.current_stock - selectedQty) > 5 ? "text-blue-600" : "text-red-600"}`}>
+                                {product.current_stock - selectedQty}
+                              </span>
                             </span>
                           </div>
                         </div>
