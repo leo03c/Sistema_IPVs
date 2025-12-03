@@ -51,9 +51,9 @@ FOREIGN KEY (catalog_product_id)
 REFERENCES public.product_catalog(id) 
 ON DELETE SET NULL;
 
--- Step 3: Create an index if it doesn't exist (for better query performance)
-CREATE INDEX IF NOT EXISTS idx_products_catalog_product_id 
-ON public.products(catalog_product_id);
+-- Note: The index idx_products_catalog_product_id already exists from 
+-- the previous migration (008-create-product-catalog.sql), so we don't 
+-- need to recreate it here.
 
 -- =====================================================================
 -- Done! Now when a product is deleted from the catalog, products in IPVs
