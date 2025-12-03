@@ -49,6 +49,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Redirect authenticated users away from auth pages (login, register)
+  // This prevents the back button from taking users to auth pages when they're logged in
+  if (user && request.nextUrl.pathname.startsWith('/auth/')) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
   return supabaseResponse
 }
 
