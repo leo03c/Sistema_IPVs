@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock, FileDown, Save } from "lucide-react"
+import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock, FileDown, Save, ChevronDown, ChevronUp } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
@@ -16,6 +16,7 @@ import { formatCurrency } from "@/lib/utils"
 import { exportReportToPDF, type BillCount, type ReportData } from "@/lib/pdf-export"
 import { PDFExportModal } from "@/components/pdf-export-modal"
 import { usePreventLoginBack } from "@/lib/hooks/use-prevent-login-back"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface PendingPayment {
   id: string
@@ -45,6 +46,7 @@ export function SalesInterface({
   const [isLoading, setIsLoading] = useState(false)
   const [isPDFModalOpen, setIsPDFModalOpen] = useState(false)
   const [isClient, setIsClient] = useState(false)
+  const [isOutOfStockOpen, setIsOutOfStockOpen] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -428,8 +430,8 @@ export function SalesInterface({
         </Card>
       </div>
 
-      {/* Tab Navigation */}
-      <div className="px-4 mb-4">
+      {/* Tab Navigation - Sticky */}
+      <div className="px-4 mb-4 bg-gray-50 sticky top-[129px] z-20 py-3 -mt-3">
         <div className="grid grid-cols-3 gap-2">
           <Button
             variant={activeTab === "products" ?  "default" : "outline"}
@@ -480,7 +482,7 @@ export function SalesInterface({
         {activeTab === "products" && (
           <div className="space-y-4">
             {selectedProducts.size > 0 && ! isIPVClosed && (
-              <Card className="bg-purple-50 border-purple-200 sticky top-[76px] z-10">
+              <Card className="bg-purple-50 border-purple-200 sticky top-[188px] z-10">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -511,77 +513,153 @@ export function SalesInterface({
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-2">
-                {products.map((product) => {
-                  const isSelected = selectedProducts. has(product.id)
-                  const selectedQty = selectedProducts.get(product.id) || 0
-                  
-                  return (
-                    <Card 
-                      key={product.id} 
-                      className={`p-4 bg-white transition-shadow ${
-                        isSelected ? 'ring-2 ring-purple-500 shadow-md' : 'hover:shadow-md'
-                      } ${product.current_stock <= 0 ? 'opacity-50' : ''} ${isIPVClosed ? 'opacity-75' : ''}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="pt-1">
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleProductSelection(product.id)}
-                            disabled={product.current_stock <= 0 || isIPVClosed}
-                            className="h-5 w-5"
-                          />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 truncate">{product. name}</h3>
-                          <p className="text-lg font-bold text-blue-600">${formatCurrency(product. price)}</p>
-                          <div className="flex gap-3 mt-2 text-xs">
-                            <span className="text-gray-600">
-                              Entrante: <span className="font-semibold">{product.initial_stock}</span>
-                            </span>
-                            <span className="text-gray-600">
-                              Vendidos:{" "}
-                              <span className="font-semibold text-green-600">
-                                {product.initial_stock - product. current_stock}
-                              </span>
-                            </span>
-                            <span className="text-gray-600">
-                              Restante:{" "}
-                              <span className={`font-semibold ${Math.max(0, product.current_stock - selectedQty) > 5 ? "text-blue-600" : "text-red-600"}`}>
-                                {Math.max(0, product.current_stock - selectedQty)}
-                              </span>
-                            </span>
+              <>
+                {/* Available Products (stock > 0) */}
+                <div className="space-y-2">
+                  {products
+                    .filter(product => product.current_stock > 0)
+                    .map((product) => {
+                      const isSelected = selectedProducts.has(product.id)
+                      const selectedQty = selectedProducts.get(product.id) || 0
+                      
+                      return (
+                        <Card 
+                          key={product.id} 
+                          className={`p-4 bg-white transition-shadow ${
+                            isSelected ? 'ring-2 ring-purple-500 shadow-md' : 'hover:shadow-md'
+                          } ${isIPVClosed ? 'opacity-75' : ''}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="pt-1">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleProductSelection(product.id)}
+                                disabled={isIPVClosed}
+                                className="h-5 w-5"
+                              />
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
+                              <p className="text-lg font-bold text-blue-600">${formatCurrency(product.price)}</p>
+                              <div className="flex gap-3 mt-2 text-xs">
+                                <span className="text-gray-600">
+                                  Entrante: <span className="font-semibold">{product.initial_stock}</span>
+                                </span>
+                                <span className="text-gray-600">
+                                  Vendidos:{" "}
+                                  <span className="font-semibold text-green-600">
+                                    {product.initial_stock - product.current_stock}
+                                  </span>
+                                </span>
+                                <span className="text-gray-600">
+                                  Restante:{" "}
+                                  <span className={`font-semibold ${Math.max(0, product.current_stock - selectedQty) > 5 ? "text-blue-600" : "text-red-600"}`}>
+                                    {Math.max(0, product.current_stock - selectedQty)}
+                                  </span>
+                                </span>
+                              </div>
+                            </div>
+                            
+                            {isSelected && !isIPVClosed && (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => updateProductQuantity(product.id, selectedQty - 1)}
+                                  className="h-8 w-8"
+                                >
+                                  -
+                                </Button>
+                                <span className="w-8 text-center font-bold">{selectedQty}</span>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => updateProductQuantity(product.id, selectedQty + 1)}
+                                  disabled={selectedQty >= product.current_stock}
+                                  className="h-8 w-8"
+                                >
+                                  +
+                                </Button>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                        
-                        {isSelected && ! isIPVClosed && (
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => updateProductQuantity(product.id, selectedQty - 1)}
-                              className="h-8 w-8"
-                            >
-                              -
-                            </Button>
-                            <span className="w-8 text-center font-bold">{selectedQty}</span>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => updateProductQuantity(product.id, selectedQty + 1)}
-                              disabled={selectedQty >= product.current_stock}
-                              className="h-8 w-8"
-                            >
-                              +
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                        </Card>
+                      )
+                    })}
+                </div>
+
+                {/* Out of Stock Products (stock = 0) - Collapsible Section */}
+                {products.filter(product => product.current_stock === 0).length > 0 && (
+                  <Collapsible open={isOutOfStockOpen} onOpenChange={setIsOutOfStockOpen} className="mt-4">
+                    <Card className="bg-gray-100 border-gray-300">
+                      <CollapsibleTrigger asChild>
+                        <button className="w-full">
+                          <CardHeader className="cursor-pointer hover:bg-gray-200 transition-colors">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Package className="h-5 w-5 text-gray-600" />
+                                <CardTitle className="text-base text-gray-700">
+                                  Productos agotados ({products.filter(p => p.current_stock === 0).length})
+                                </CardTitle>
+                              </div>
+                              {isOutOfStockOpen ? (
+                                <ChevronUp className="h-5 w-5 text-gray-600" />
+                              ) : (
+                                <ChevronDown className="h-5 w-5 text-gray-600" />
+                              )}
+                            </div>
+                          </CardHeader>
+                        </button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="pt-0 space-y-2">
+                          {products
+                            .filter(product => product.current_stock === 0)
+                            .map((product) => (
+                              <Card 
+                                key={product.id} 
+                                className="p-4 bg-white opacity-60"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <div className="pt-1">
+                                    <Checkbox
+                                      checked={false}
+                                      disabled={true}
+                                      className="h-5 w-5"
+                                    />
+                                  </div>
+                                  
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
+                                    <p className="text-lg font-bold text-blue-600">${formatCurrency(product.price)}</p>
+                                    <div className="flex gap-3 mt-2 text-xs">
+                                      <span className="text-gray-600">
+                                        Entrante: <span className="font-semibold">{product.initial_stock}</span>
+                                      </span>
+                                      <span className="text-gray-600">
+                                        Vendidos:{" "}
+                                        <span className="font-semibold text-green-600">
+                                          {product.initial_stock - product.current_stock}
+                                        </span>
+                                      </span>
+                                      <span className="text-gray-600">
+                                        Restante:{" "}
+                                        <span className="font-semibold text-red-600">
+                                          0 (Agotado)
+                                        </span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </Card>
+                            ))}
+                        </CardContent>
+                      </CollapsibleContent>
                     </Card>
-                  )
-                })}
-              </div>
+                  </Collapsible>
+                )}
+              </>
             )}
           </div>
         )}
