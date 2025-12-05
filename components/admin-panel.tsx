@@ -463,7 +463,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       <div className="min-h-screen bg-gray-50 overflow-x-hidden">
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 md:py-4 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <Button variant="ghost" size="icon" onClick={() => setSelectedIPV(null)} className="shrink-0 h-8 w-8 sm:h-10 sm:w-10">
                 <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -508,23 +508,23 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
               : 'relative'
           }`}
         >
-          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-            <div className="flex gap-2">
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 md:py-4">
+            <div className="flex gap-1.5 sm:gap-2">
               <Button
                 variant={activeTab === "products" ? "default" : "outline"}
                 onClick={() => setActiveTab("products")}
-                className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
+                className="flex-1 text-xs sm:text-sm h-8 sm:h-9 md:h-10"
               >
-                <Package className="h-4 w-4 sm:mr-2" />
+                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Productos</span>
                 <span className="sm:hidden ml-1">Prod.</span>
               </Button>
               <Button
                 variant={activeTab === "reports" ? "default" : "outline"}
                 onClick={() => setActiveTab("reports")}
-                className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
+                className="flex-1 text-xs sm:text-sm h-8 sm:h-9 md:h-10"
               >
-                <BarChart3 className="h-4 w-4 sm:mr-2" />
+                <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Reportes</span>
                 <span className="sm:hidden ml-1">Rep.</span>
               </Button>
@@ -535,7 +535,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
         {/* Spacer when sticky */}
         {isIPVTabsSticky && <div style={{ height: `${ipvTabsHeightRef.current}px` }} />}
 
-        <div className="max-w-7xl mx-auto p-3 sm:p-4">
+        <div className="max-w-7xl mx-auto p-2 sm:p-3 md:p-4">
           {/* Products Tab */}
           {activeTab === "products" && (
             <div className="space-y-3 sm:space-y-4">
@@ -789,7 +789,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 md:py-4 flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
             <h1 className="text-base sm:text-xl md:text-2xl font-bold text-gray-900 truncate">Panel de Administración</h1>
             <p className="text-xs sm:text-sm text-gray-500 truncate">{profile.email}</p>
@@ -801,18 +801,18 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-3 sm:p-4">
-        <Tabs value={mainView} onValueChange={(v) => setMainView(v as "ipvs" | "catalog")} className="space-y-4">
+      <div className="max-w-7xl mx-auto p-2 sm:p-3 md:p-4">
+        <Tabs value={mainView} onValueChange={(v) => setMainView(v as "ipvs" | "catalog")} className="space-y-3 sm:space-y-4">
           <div 
             ref={mainTabsRef}
             className={`transition-all duration-200 ${
               isMainTabsSticky 
-                ? 'fixed top-0 left-0 right-0 z-40 bg-gray-50 shadow-md py-3 sm:py-4' 
+                ? 'fixed top-0 left-0 right-0 z-40 bg-gray-50 shadow-md py-2 sm:py-3 md:py-4' 
                 : 'relative'
             }`}
           >
             <div className={isMainTabsSticky ? "max-w-7xl mx-auto px-3 sm:px-4" : ""}>
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-2 h-9 sm:h-10">
                 <TabsTrigger value="ipvs" className="flex items-center gap-2">
                   <Package className="h-4 w-4" />
                   <span>Mis IPVs</span>
