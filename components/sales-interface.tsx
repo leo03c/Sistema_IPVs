@@ -479,45 +479,49 @@ export function SalesInterface({
 
       <div className="px-4 pb-4">
         {/* Products Tab */}
-        {activeTab === "products" && (
-          <div className="space-y-4">
-            {selectedProducts.size > 0 && ! isIPVClosed && (
-              <Card className="bg-purple-50 border-purple-200 sticky top-[188px] z-10">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <ShoppingCart className="h-5 w-5 text-purple-600" />
-                      <span className="font-semibold text-purple-800">
-                        {selectedProducts.size} producto(s) seleccionado(s)
+        {activeTab === "products" && (() => {
+          // Separate products into available and out-of-stock to avoid multiple filtering
+          const availableProducts = products.filter(product => product.current_stock > 0)
+          const outOfStockProducts = products.filter(product => product.current_stock === 0)
+
+          return (
+            <div className="space-y-4">
+              {selectedProducts.size > 0 && ! isIPVClosed && (
+                <Card className="bg-purple-50 border-purple-200 sticky top-[188px] z-10">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <ShoppingCart className="h-5 w-5 text-purple-600" />
+                        <span className="font-semibold text-purple-800">
+                          {selectedProducts.size} producto(s) seleccionado(s)
+                        </span>
+                      </div>
+                      <span className="text-xl font-bold text-purple-700">
+                        ${formatCurrency(calculateSelectedTotal())}
                       </span>
                     </div>
-                    <span className="text-xl font-bold text-purple-700">
-                      ${formatCurrency(calculateSelectedTotal())}
-                    </span>
-                  </div>
-                  <Button 
-                    onClick={openPaymentDialog}
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                  >
-                    Procesar Pago
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+                    <Button 
+                      onClick={openPaymentDialog}
+                      className="w-full bg-purple-600 hover:bg-purple-700"
+                    >
+                      Procesar Pago
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
-            {products.length === 0 ?  (
-              <Card>
-                <CardContent className="py-8 text-center text-gray-500">
-                  <p>No hay productos en este inventario</p>
-                  <p className="text-sm">Contacta al administrador para agregar productos</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                {/* Available Products (stock > 0) */}
-                <div className="space-y-2">
-                  {products
-                    .filter(product => product.current_stock > 0)
+              {products.length === 0 ?  (
+                <Card>
+                  <CardContent className="py-8 text-center text-gray-500">
+                    <p>No hay productos en este inventario</p>
+                    <p className="text-sm">Contacta al administrador para agregar productos</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  {/* Available Products (stock > 0) */}
+                  <div className="space-y-2">
+                    {availableProducts
                     .map((product) => {
                       const isSelected = selectedProducts.has(product.id)
                       const selectedQty = selectedProducts.get(product.id) || 0
@@ -589,33 +593,32 @@ export function SalesInterface({
                     })}
                 </div>
 
-                {/* Out of Stock Products (stock = 0) - Collapsible Section */}
-                {products.filter(product => product.current_stock === 0).length > 0 && (
-                  <Collapsible open={isOutOfStockOpen} onOpenChange={setIsOutOfStockOpen} className="mt-4">
-                    <Card className="bg-gray-100 border-gray-300">
-                      <CollapsibleTrigger asChild>
-                        <button className="w-full">
-                          <CardHeader className="cursor-pointer hover:bg-gray-200 transition-colors">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <Package className="h-5 w-5 text-gray-600" />
-                                <CardTitle className="text-base text-gray-700">
-                                  Productos agotados ({products.filter(p => p.current_stock === 0).length})
-                                </CardTitle>
+                  {/* Out of Stock Products (stock = 0) - Collapsible Section */}
+                  {outOfStockProducts.length > 0 && (
+                    <Collapsible open={isOutOfStockOpen} onOpenChange={setIsOutOfStockOpen} className="mt-4">
+                      <Card className="bg-gray-100 border-gray-300">
+                        <CollapsibleTrigger asChild>
+                          <button className="w-full">
+                            <CardHeader className="cursor-pointer hover:bg-gray-200 transition-colors">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Package className="h-5 w-5 text-gray-600" />
+                                  <CardTitle className="text-base text-gray-700">
+                                    Productos agotados ({outOfStockProducts.length})
+                                  </CardTitle>
+                                </div>
+                                {isOutOfStockOpen ? (
+                                  <ChevronUp className="h-5 w-5 text-gray-600" />
+                                ) : (
+                                  <ChevronDown className="h-5 w-5 text-gray-600" />
+                                )}
                               </div>
-                              {isOutOfStockOpen ? (
-                                <ChevronUp className="h-5 w-5 text-gray-600" />
-                              ) : (
-                                <ChevronDown className="h-5 w-5 text-gray-600" />
-                              )}
-                            </div>
-                          </CardHeader>
-                        </button>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <CardContent className="pt-0 space-y-2">
-                          {products
-                            .filter(product => product.current_stock === 0)
+                            </CardHeader>
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <CardContent className="pt-0 space-y-2">
+                            {outOfStockProducts
                             .map((product) => (
                               <Card 
                                 key={product.id} 
@@ -657,12 +660,13 @@ export function SalesInterface({
                         </CardContent>
                       </CollapsibleContent>
                     </Card>
-                  </Collapsible>
-                )}
-              </>
-            )}
-          </div>
-        )}
+                    </Collapsible>
+                  )}
+                </>
+              )}
+            </div>
+          )
+        })()}
 
         {/* Pending Payments Tab */}
         {activeTab === "pending" && (
