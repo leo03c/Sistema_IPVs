@@ -521,8 +521,7 @@ export function SalesInterface({
                 <>
                   {/* Available Products (stock > 0) */}
                   <div className="space-y-2">
-                    {availableProducts
-                    .map((product) => {
+                    {availableProducts.map((product) => {
                       const isSelected = selectedProducts.has(product.id)
                       const selectedQty = selectedProducts.get(product.id) || 0
                       
@@ -618,8 +617,7 @@ export function SalesInterface({
                         </CollapsibleTrigger>
                         <CollapsibleContent>
                           <CardContent className="pt-0 space-y-2">
-                            {outOfStockProducts
-                            .map((product) => (
+                            {outOfStockProducts.map((product) => (
                               <Card 
                                 key={product.id} 
                                 className="p-4 bg-white opacity-60"
