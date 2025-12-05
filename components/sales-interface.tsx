@@ -431,8 +431,9 @@ export function SalesInterface({
       </div>
 
       {/* Tab Navigation - Sticky */}
-      <div className="px-4 mb-4 bg-gray-50 sticky top-[129px] z-20 py-3 -mt-3">
-        <div className="grid grid-cols-3 gap-2">
+      <div className="bg-gray-50 sticky top-[57px] z-20">
+        <div className="px-4 py-3">
+          <div className="grid grid-cols-3 gap-2">
           <Button
             variant={activeTab === "products" ?  "default" : "outline"}
             onClick={() => setActiveTab("products")}
@@ -474,10 +475,11 @@ export function SalesInterface({
           >
             Billetes
           </Button>
+          </div>
         </div>
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4 pt-4">
         {/* Products Tab */}
         {activeTab === "products" && (() => {
           // Separate products into available and out-of-stock to avoid multiple filtering
@@ -487,7 +489,7 @@ export function SalesInterface({
           return (
             <div className="space-y-4">
               {selectedProducts.size > 0 && ! isIPVClosed && (
-                <Card className="bg-purple-50 border-purple-200 sticky top-[188px] z-10">
+                <Card className="bg-purple-50 border-purple-200 sticky top-[117px] z-10">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
