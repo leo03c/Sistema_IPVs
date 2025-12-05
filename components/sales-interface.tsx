@@ -44,6 +44,7 @@ export function SalesInterface({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"cash" | "transfer" | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [confirmingPaymentId, setConfirmingPaymentId] = useState<string | null>(null)
   const [isPDFModalOpen, setIsPDFModalOpen] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [isOutOfStockOpen, setIsOutOfStockOpen] = useState(false)
@@ -198,9 +199,9 @@ export function SalesInterface({
 
   const confirmPayment = async (paymentId: string) => {
     const payment = pendingPayments.find(p => p.id === paymentId)
-    if (!payment || isLoading) return
+    if (!payment || confirmingPaymentId !== null) return
 
-    setIsLoading(true)
+    setConfirmingPaymentId(paymentId)
 
     try {
       for (const item of payment.items) {
@@ -230,7 +231,7 @@ export function SalesInterface({
       console. error("Error confirmando pago:", error)
       toast.error("Error al confirmar el pago")
     } finally {
-      setIsLoading(false)
+      setConfirmingPaymentId(null)
     }
   }
 
@@ -728,7 +729,7 @@ export function SalesInterface({
                             variant="outline"
                             onClick={() => cancelPendingPayment(payment.id)}
                             className="flex-1"
-                            disabled={isLoading || isIPVClosed}
+                            disabled={confirmingPaymentId !== null || isIPVClosed}
                           >
                             <Trash2 className="h-4 w-4 mr-1" />
                             Cancelar
@@ -736,10 +737,10 @@ export function SalesInterface({
                           <Button
                             onClick={() => confirmPayment(payment.id)}
                             className="flex-1 bg-green-600 hover:bg-green-700"
-                            disabled={isLoading || isIPVClosed}
+                            disabled={confirmingPaymentId !== null || isIPVClosed}
                           >
                             <Check className="h-4 w-4 mr-1" />
-                            {isLoading ? "Procesando..." : "Confirmar"}
+                            {confirmingPaymentId === payment.id ? "Procesando..." : "Confirmar"}
                           </Button>
                         </div>
                       )}
