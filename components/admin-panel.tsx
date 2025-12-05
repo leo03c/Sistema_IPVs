@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -98,6 +98,16 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const [isDeletingCatalogProduct, setIsDeletingCatalogProduct] = useState<string | null>(null)
   const [isTogglingStatus, setIsTogglingStatus] = useState<string | null>(null)
   const [isClient, setIsClient] = useState(false)
+  
+  // Sticky tabs state and refs
+  const [isIPVTabsSticky, setIsIPVTabsSticky] = useState(false)
+  const [isMainTabsSticky, setIsMainTabsSticky] = useState(false)
+  const ipvTabsRef = useRef<HTMLDivElement>(null)
+  const mainTabsRef = useRef<HTMLDivElement>(null)
+  const ipvTabsOffsetRef = useRef<number>(0)
+  const mainTabsOffsetRef = useRef<number>(0)
+  const ipvTabsHeightRef = useRef<number>(0)
+  const mainTabsHeightRef = useRef<number>(0)
 
   // Get initial states from URL or default values
   const initialMainView = (searchParams.get("view") as "ipvs" | "catalog") || "ipvs"
@@ -117,6 +127,49 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Scroll listener for sticky tabs
+  useEffect(() => {
+    // Store initial offsets - only when not sticky
+    const storeOffsets = () => {
+      if (ipvTabsRef.current && ipvTabsOffsetRef.current === 0) {
+        ipvTabsOffsetRef.current = ipvTabsRef.current.offsetTop
+        ipvTabsHeightRef.current = ipvTabsRef.current.offsetHeight
+      }
+      if (mainTabsRef.current && mainTabsOffsetRef.current === 0) {
+        mainTabsOffsetRef.current = mainTabsRef.current.offsetTop
+        mainTabsHeightRef.current = mainTabsRef.current.offsetHeight
+      }
+    }
+    
+    const handleScroll = () => {
+      // Check IPV detail tabs
+      if (ipvTabsRef.current && ipvTabsOffsetRef.current > 0) {
+        const shouldBeSticky = window.scrollY >= ipvTabsOffsetRef.current
+        setIsIPVTabsSticky(shouldBeSticky)
+      }
+      
+      // Check main dashboard tabs
+      if (mainTabsRef.current && mainTabsOffsetRef.current > 0) {
+        const shouldBeSticky = window.scrollY >= mainTabsOffsetRef.current
+        setIsMainTabsSticky(shouldBeSticky)
+      }
+    }
+
+    // Store offsets on mount and when view changes
+    storeOffsets()
+    
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('resize', storeOffsets, { passive: true })
+    
+    // Initial check
+    handleScroll()
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', storeOffsets)
+    }
+  }, [selectedIPV, mainView])
 
   // Sync all state changes to URL
   useEffect(() => {
@@ -447,28 +500,40 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
         </div>
 
         {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-3 sm:pt-4">
-          <div className="flex gap-2 mb-3 sm:mb-4">
-            <Button
-              variant={activeTab === "products" ? "default" : "outline"}
-              onClick={() => setActiveTab("products")}
-              className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
-            >
-              <Package className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Productos</span>
-              <span className="sm:hidden ml-1">Prod.</span>
-            </Button>
-            <Button
-              variant={activeTab === "reports" ? "default" : "outline"}
-              onClick={() => setActiveTab("reports")}
-              className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
-            >
-              <BarChart3 className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">Reportes</span>
-              <span className="sm:hidden ml-1">Rep.</span>
-            </Button>
+        <div 
+          ref={ipvTabsRef}
+          className={`bg-gray-50 transition-all duration-200 ${
+            isIPVTabsSticky 
+              ? 'fixed top-0 left-0 right-0 z-40 shadow-md' 
+              : 'relative'
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+            <div className="flex gap-2">
+              <Button
+                variant={activeTab === "products" ? "default" : "outline"}
+                onClick={() => setActiveTab("products")}
+                className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
+              >
+                <Package className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Productos</span>
+                <span className="sm:hidden ml-1">Prod.</span>
+              </Button>
+              <Button
+                variant={activeTab === "reports" ? "default" : "outline"}
+                onClick={() => setActiveTab("reports")}
+                className="flex-1 text-xs sm:text-sm h-9 sm:h-10"
+              >
+                <BarChart3 className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Reportes</span>
+                <span className="sm:hidden ml-1">Rep.</span>
+              </Button>
+            </div>
           </div>
         </div>
+        
+        {/* Spacer when sticky */}
+        {isIPVTabsSticky && <div style={{ height: `${ipvTabsHeightRef.current}px` }} />}
 
         <div className="max-w-7xl mx-auto p-3 sm:p-4">
           {/* Products Tab */}
@@ -738,16 +803,30 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 
       <div className="max-w-7xl mx-auto p-3 sm:p-4">
         <Tabs value={mainView} onValueChange={(v) => setMainView(v as "ipvs" | "catalog")} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="ipvs" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              <span>Mis IPVs</span>
-            </TabsTrigger>
-            <TabsTrigger value="catalog" className="flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4" />
-              <span>Catálogo de Productos</span>
-            </TabsTrigger>
-          </TabsList>
+          <div 
+            ref={mainTabsRef}
+            className={`transition-all duration-200 ${
+              isMainTabsSticky 
+                ? 'fixed top-0 left-0 right-0 z-40 bg-gray-50 shadow-md py-3 sm:py-4' 
+                : 'relative'
+            }`}
+          >
+            <div className={isMainTabsSticky ? "max-w-7xl mx-auto px-3 sm:px-4" : ""}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="ipvs" className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  <span>Mis IPVs</span>
+                </TabsTrigger>
+                <TabsTrigger value="catalog" className="flex items-center gap-2">
+                  <ShoppingBag className="h-4 w-4" />
+                  <span>Catálogo de Productos</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+          </div>
+          
+          {/* Spacer when sticky */}
+          {isMainTabsSticky && <div style={{ height: `${mainTabsHeightRef.current}px` }} />}
 
           {/* IPVs Tab Content */}
           <TabsContent value="ipvs" className="space-y-3 sm:space-y-4">
