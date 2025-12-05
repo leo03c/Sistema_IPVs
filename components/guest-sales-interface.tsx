@@ -294,7 +294,7 @@ export function GuestSalesInterface() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="px-4 mb-4">
+      <div className="px-4 mb-4 bg-gray-50 sticky top-[57px] z-20 py-3 -mt-3">
         <div className="grid grid-cols-3 gap-2">
           <Button
             variant={activeTab === "products" ? "default" : "outline"}
