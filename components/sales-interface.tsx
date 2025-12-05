@@ -199,7 +199,7 @@ export function SalesInterface({
 
   const confirmPayment = async (paymentId: string) => {
     const payment = pendingPayments.find(p => p.id === paymentId)
-    if (!payment || confirmingPaymentId) return
+    if (!payment || confirmingPaymentId !== null) return
 
     setConfirmingPaymentId(paymentId)
 
