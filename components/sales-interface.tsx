@@ -372,9 +372,9 @@ export function SalesInterface({
     <div className="min-h-screen bg-gray-50">
       {/* Closed IPV Banner */}
       {isIPVClosed && (
-        <div className="bg-orange-100 border-b border-orange-300 px-4 py-2 flex items-center justify-center gap-2">
-          <Lock className="h-4 w-4 text-orange-600" />
-          <span className="text-sm text-orange-700 font-medium">
+        <div className="bg-orange-100 border-b border-orange-300 px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-center gap-1.5 sm:gap-2">
+          <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-600" />
+          <span className="text-xs sm:text-sm text-orange-700 font-medium">
             Este IPV está cerrado. Solo puedes ver la información. 
           </span>
         </div>
@@ -382,102 +382,101 @@ export function SalesInterface({
 
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="px-3 py-2 sm:px-4 sm:py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {onBack && (
-              <Button variant="ghost" size="icon" onClick={onBack} className="text-gray-600">
-                <ArrowLeft className="h-5 w-5" />
+              <Button variant="ghost" size="icon" onClick={onBack} className="text-gray-600 h-8 w-8 sm:h-10 sm:w-10">
+                <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             )}
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold text-gray-900">{ipv.name}</h1>
-                <Badge variant={isIPVClosed ?  'secondary' : 'default'} className={isIPVClosed ?  'bg-gray-500' : 'bg-green-500'}>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{ipv.name}</h1>
+                <Badge variant={isIPVClosed ?  'secondary' : 'default'} className={`text-xs ${isIPVClosed ?  'bg-gray-500' : 'bg-green-500'}`}>
                   {isIPVClosed ? 'Cerrado' : 'Abierto'}
                 </Badge>
               </div>
-              <p className="text-xs text-gray-500">{ipv.description}</p>
+              <p className="text-xs text-gray-500 truncate hidden sm:block">{ipv.description}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-600">
-            <LogOut className="h-5 w-5" />
+          <Button variant="ghost" size="icon" onClick={handleLogout} className="text-gray-600 h-8 w-8 sm:h-10 sm:w-10 shrink-0">
+            <LogOut className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </header>
 
       {/* Summary Cards */}
-      <div className="p-4 grid grid-cols-3 gap-2">
+      <div className="px-3 py-2 sm:p-4 grid grid-cols-3 gap-1.5 sm:gap-2">
         <Card className="bg-green-500 text-white">
-          <CardContent className="p-3 text-center">
-            <Banknote className="h-5 w-5 mx-auto mb-1" />
-            <p className="text-xs opacity-90">Efectivo</p>
-            <p className="text-lg font-bold">${formatCurrency(totalCash)}</p>
+          <CardContent className="p-2 sm:p-3 text-center">
+            <Banknote className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-0.5 sm:mb-1" />
+            <p className="text-[10px] sm:text-xs opacity-90">Efectivo</p>
+            <p className="text-sm sm:text-lg font-bold">${formatCurrency(totalCash)}</p>
           </CardContent>
         </Card>
         <Card className="bg-blue-500 text-white">
-          <CardContent className="p-3 text-center">
-            <CreditCard className="h-5 w-5 mx-auto mb-1" />
-            <p className="text-xs opacity-90">Transfer</p>
-            <p className="text-lg font-bold">${formatCurrency(totalTransfer)}</p>
+          <CardContent className="p-2 sm:p-3 text-center">
+            <CreditCard className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-0.5 sm:mb-1" />
+            <p className="text-[10px] sm:text-xs opacity-90">Transfer</p>
+            <p className="text-sm sm:text-lg font-bold">${formatCurrency(totalTransfer)}</p>
           </CardContent>
         </Card>
         <Card className="bg-purple-600 text-white">
-          <CardContent className="p-3 text-center">
-            <DollarSign className="h-5 w-5 mx-auto mb-1" />
-            <p className="text-xs opacity-90">Total</p>
-            <p className="text-lg font-bold">${formatCurrency(totalGeneral)}</p>
+          <CardContent className="p-2 sm:p-3 text-center">
+            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 mx-auto mb-0.5 sm:mb-1" />
+            <p className="text-[10px] sm:text-xs opacity-90">Total</p>
+            <p className="text-sm sm:text-lg font-bold">${formatCurrency(totalGeneral)}</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tab Navigation - Sticky */}
-      <div className="px-4 mb-4 bg-gray-50 sticky top-[129px] z-20 py-3 -mt-3">
-        <div className="grid grid-cols-3 gap-2">
+      <div className="bg-gray-50 sticky top-[42px] sm:top-[57px] z-20">
+        <div className="px-3 py-2 sm:px-4 sm:py-3">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           <Button
             variant={activeTab === "products" ?  "default" : "outline"}
             onClick={() => setActiveTab("products")}
-            size="sm"
+            className="h-8 text-xs sm:h-9 sm:text-sm"
           >
             Productos
           </Button>
           <Button
             variant={activeTab === "pending" ?  "default" : "outline"}
             onClick={() => setActiveTab("pending")}
-            className="relative"
-            size="sm"
+            className="relative h-8 text-xs sm:h-9 sm:text-sm"
           >
             Pendientes
             {pendingPayments.length > 0 && (
-              <Badge className="ml-1 bg-orange-500">{pendingPayments.length}</Badge>
+              <Badge className="ml-1 bg-orange-500 text-[10px] sm:text-xs">{pendingPayments.length}</Badge>
             )}
           </Button>
           <Button
             variant={activeTab === "history" ? "default" : "outline"}
             onClick={() => setActiveTab("history")}
-            size="sm"
+            className="h-8 text-xs sm:h-9 sm:text-sm"
           >
             Historial
           </Button>
           <Button
             variant={activeTab === "stats" ? "default" : "outline"}
             onClick={() => setActiveTab("stats")}
-            size="sm"
-            className="col-span-1"
+            className="col-span-1 h-8 text-xs sm:h-9 sm:text-sm"
           >
             Estadísticas
           </Button>
           <Button
             variant={activeTab === "bills" ?  "default" : "outline"}
             onClick={() => setActiveTab("bills")}
-            size="sm"
-            className="col-span-2"
+            className="col-span-2 h-8 text-xs sm:h-9 sm:text-sm"
           >
             Billetes
           </Button>
+          </div>
         </div>
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="px-3 pb-3 pt-3 sm:px-4 sm:pb-4 sm:pt-4">
         {/* Products Tab */}
         {activeTab === "products" && (() => {
           // Separate products into available and out-of-stock to avoid multiple filtering
@@ -487,22 +486,22 @@ export function SalesInterface({
           return (
             <div className="space-y-4">
               {selectedProducts.size > 0 && ! isIPVClosed && (
-                <Card className="bg-purple-50 border-purple-200 sticky top-[188px] z-10">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <ShoppingCart className="h-5 w-5 text-purple-600" />
-                        <span className="font-semibold text-purple-800">
-                          {selectedProducts.size} producto(s) seleccionado(s)
+                <Card className="bg-purple-50 border-purple-200 sticky top-[82px] sm:top-[117px] z-10">
+                  <CardContent className="p-2.5 sm:p-4">
+                    <div className="flex items-center justify-between mb-2 sm:mb-3">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+                        <span className="text-sm sm:text-base font-semibold text-purple-800">
+                          {selectedProducts.size} producto(s)
                         </span>
                       </div>
-                      <span className="text-xl font-bold text-purple-700">
+                      <span className="text-lg sm:text-xl font-bold text-purple-700">
                         ${formatCurrency(calculateSelectedTotal())}
                       </span>
                     </div>
                     <Button 
                       onClick={openPaymentDialog}
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="w-full bg-purple-600 hover:bg-purple-700 h-9 sm:h-10 text-sm"
                     >
                       Procesar Pago
                     </Button>
