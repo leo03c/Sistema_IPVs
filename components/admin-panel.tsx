@@ -106,6 +106,8 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
   const mainTabsRef = useRef<HTMLDivElement>(null)
   const ipvTabsOffsetRef = useRef<number>(0)
   const mainTabsOffsetRef = useRef<number>(0)
+  const ipvTabsHeightRef = useRef<number>(0)
+  const mainTabsHeightRef = useRef<number>(0)
 
   // Get initial states from URL or default values
   const initialMainView = (searchParams.get("view") as "ipvs" | "catalog") || "ipvs"
@@ -128,27 +130,29 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
 
   // Scroll listener for sticky tabs
   useEffect(() => {
-    // Store initial offsets
+    // Store initial offsets - only when not sticky
     const storeOffsets = () => {
-      if (ipvTabsRef.current && !isIPVTabsSticky) {
+      if (ipvTabsRef.current && ipvTabsOffsetRef.current === 0) {
         ipvTabsOffsetRef.current = ipvTabsRef.current.offsetTop
+        ipvTabsHeightRef.current = ipvTabsRef.current.offsetHeight
       }
-      if (mainTabsRef.current && !isMainTabsSticky) {
+      if (mainTabsRef.current && mainTabsOffsetRef.current === 0) {
         mainTabsOffsetRef.current = mainTabsRef.current.offsetTop
+        mainTabsHeightRef.current = mainTabsRef.current.offsetHeight
       }
     }
     
     const handleScroll = () => {
       // Check IPV detail tabs
       if (ipvTabsRef.current && ipvTabsOffsetRef.current > 0) {
-        // Sticky when scrolled past original position
-        setIsIPVTabsSticky(window.scrollY >= ipvTabsOffsetRef.current)
+        const shouldBeSticky = window.scrollY >= ipvTabsOffsetRef.current
+        setIsIPVTabsSticky(shouldBeSticky)
       }
       
       // Check main dashboard tabs
       if (mainTabsRef.current && mainTabsOffsetRef.current > 0) {
-        // Sticky when scrolled past original position
-        setIsMainTabsSticky(window.scrollY >= mainTabsOffsetRef.current)
+        const shouldBeSticky = window.scrollY >= mainTabsOffsetRef.current
+        setIsMainTabsSticky(shouldBeSticky)
       }
     }
 
@@ -165,7 +169,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
       window.removeEventListener('scroll', handleScroll)
       window.removeEventListener('resize', storeOffsets)
     }
-  }, [selectedIPV, mainView, isIPVTabsSticky, isMainTabsSticky])
+  }, [selectedIPV, mainView])
 
   // Sync all state changes to URL
   useEffect(() => {
@@ -529,7 +533,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
         </div>
         
         {/* Spacer when sticky */}
-        {isIPVTabsSticky && <div style={{ height: `${ipvTabsRef.current?.offsetHeight || 0}px` }} />}
+        {isIPVTabsSticky && <div style={{ height: `${ipvTabsHeightRef.current}px` }} />}
 
         <div className="max-w-7xl mx-auto p-3 sm:p-4">
           {/* Products Tab */}
@@ -822,7 +826,7 @@ export function AdminPanel({ profile, initialIpvs, initialUsers, initialProducts
           </div>
           
           {/* Spacer when sticky */}
-          {isMainTabsSticky && <div style={{ height: `${mainTabsRef.current?.offsetHeight || 0}px` }} />}
+          {isMainTabsSticky && <div style={{ height: `${mainTabsHeightRef.current}px` }} />}
 
           {/* IPVs Tab Content */}
           <TabsContent value="ipvs" className="space-y-3 sm:space-y-4">
