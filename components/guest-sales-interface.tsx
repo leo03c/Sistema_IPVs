@@ -1,13 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, Banknote, CreditCard, DollarSign, Calculator, Clock, ShoppingCart, Check } from "lucide-react"
+import { Plus, Trash2, Banknote, CreditCard, DollarSign, Calculator, Clock, ShoppingCart, Check, ArrowUpDown } from "lucide-react"
 import Link from "next/link"
 import { formatCurrency } from "@/lib/utils"
 import { toast } from "sonner"
@@ -54,6 +54,7 @@ export function GuestSalesInterface() {
   const [newProductPrice, setNewProductPrice] = useState("")
   const [activeTab, setActiveTab] = useState<"products" | "pending" | "history" | "stats" | "bills">("products")
   const [isLoaded, setIsLoaded] = useState(false)
+  const [sortBy, setSortBy] = useState<"alphabetical" | "price" | "sales">("alphabetical")
 
   // Checkbox purchase system state
   const [selectedProducts, setSelectedProducts] = useState<Map<string, number>>(new Map())
@@ -254,6 +255,22 @@ export function GuestSalesInterface() {
   // Calculate bill totals
   const totalBills = bills.reduce((sum, b) => sum + b.denomination * b.count, 0)
 
+  // Memoize sorted products to avoid re-sorting on every render
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => {
+      if (sortBy === "alphabetical") {
+        return a.name.localeCompare(b.name)
+      } else if (sortBy === "price") {
+        return b.price - a.price // Higher price first
+      } else if (sortBy === "sales") {
+        const aSold = a.soldCash + a.soldTransfer
+        const bSold = b.soldCash + b.soldTransfer
+        return bSold - aSold // Most sold first
+      }
+      return 0
+    })
+  }, [products, sortBy])
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -399,6 +416,39 @@ export function GuestSalesInterface() {
               </CardContent>
             </Card>
 
+            {/* Sort buttons */}
+            {products.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                <Button
+                  variant={sortBy === "alphabetical" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("alphabetical")}
+                  className="flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  A-Z
+                </Button>
+                <Button
+                  variant={sortBy === "price" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("price")}
+                  className="flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  Precio
+                </Button>
+                <Button
+                  variant={sortBy === "sales" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSortBy("sales")}
+                  className="flex items-center gap-1.5 whitespace-nowrap"
+                >
+                  <ArrowUpDown className="h-3.5 w-3.5" />
+                  Más vendidos
+                </Button>
+              </div>
+            )}
+
             {/* Products List */}
             {products.length === 0 ? (
               <Card>
@@ -408,95 +458,78 @@ export function GuestSalesInterface() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
-                {products.map((product) => {
+              <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                {sortedProducts.map((product) => {
                   const isSelected = selectedProducts.has(product.id)
                   const selectedQty = selectedProducts.get(product.id) || 0
 
                   return (
                     <Card 
                       key={product.id} 
-                      className={`overflow-hidden transition-shadow ${
-                        isSelected ? 'ring-2 ring-purple-500 shadow-md' : ''
+                      className={`p-2 sm:p-3 bg-white transition-shadow ${
+                        isSelected ? 'ring-2 ring-purple-500 shadow-md' : 'hover:shadow-md'
                       }`}
                     >
-                      <CardContent className="p-0">
-                        {/* Product Header with Checkbox */}
-                        <div className="p-3 bg-gray-50 border-b flex items-start gap-3">
-                          {/* Checkbox for selection */}
-                          <div className="pt-1">
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-2 flex-1 min-w-0">
                             <Checkbox
                               checked={isSelected}
                               onCheckedChange={() => toggleProductSelection(product.id)}
-                              className="h-5 w-5"
+                              className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5"
                             />
-                          </div>
-                          
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-gray-900">{product.name}</h3>
-                            <p className="text-sm text-gray-600">${formatCurrency(product.price)} c/u</p>
-                          </div>
-
-                          {/* Quantity Controls (when selected) */}
-                          {isSelected && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => updateProductQuantity(product.id, selectedQty - 1)}
-                                className="h-8 w-8"
-                              >
-                                -
-                              </Button>
-                              <span className="w-8 text-center font-bold">{selectedQty}</span>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => updateProductQuantity(product.id, selectedQty + 1)}
-                                className="h-8 w-8"
-                              >
-                                +
-                              </Button>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-tight">{product.name}</h3>
+                              <p className="text-sm sm:text-base font-bold text-blue-600">${formatCurrency(product.price)}</p>
                             </div>
-                          )}
-                          
+                          </div>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => removeProduct(product.id)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-6 w-6 sm:h-7 sm:w-7 shrink-0"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Trash2 className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                           </Button>
                         </div>
-
-                        {/* Sales Summary & Direct Controls */}
-                        <div className="p-3 space-y-3">
-                          {/* Current Sales Display */}
-                          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                            <div className="bg-green-50 rounded p-2">
-                              <p className="text-green-600 font-medium">{product.soldCash}</p>
-                              <p className="text-xs text-gray-500">Efectivo</p>
-                            </div>
-                            <div className="bg-blue-50 rounded p-2">
-                              <p className="text-blue-600 font-medium">{product.soldTransfer}</p>
-                              <p className="text-xs text-gray-500">Transfer</p>
-                            </div>
-                            <div className="bg-purple-50 rounded p-2">
-                              <p className="text-purple-600 font-medium">{product.soldCash + product.soldTransfer}</p>
-                              <p className="text-xs text-gray-500">Total</p>
-                            </div>
+                        
+                        <div className="space-y-1 text-[10px] sm:text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Vendidos:</span>
+                            <span className="font-semibold text-purple-600">
+                              {product.soldCash + product.soldTransfer}
+                            </span>
                           </div>
-
-                          {/* Product Total */}
-                          <div className="bg-purple-50 rounded-lg p-2 text-center">
-                            <span className="text-sm text-purple-600">Total vendido: </span>
-                            <span className="font-bold text-purple-700">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Total:</span>
+                            <span className="font-semibold text-green-600">
                               ${formatCurrency((product.soldCash + product.soldTransfer) * product.price)}
                             </span>
                           </div>
                         </div>
-                      </CardContent>
+                        
+                        {isSelected && (
+                          <div className="flex items-center justify-center gap-1.5 pt-1">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => updateProductQuantity(product.id, selectedQty - 1)}
+                              className="h-7 w-7 sm:h-8 sm:w-8"
+                            >
+                              -
+                            </Button>
+                            <span className="w-6 sm:w-8 text-center font-bold text-sm">{selectedQty}</span>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => updateProductQuantity(product.id, selectedQty + 1)}
+                              className="h-7 w-7 sm:h-8 sm:w-8"
+                            >
+                              +
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </Card>
                   )
                 })}
