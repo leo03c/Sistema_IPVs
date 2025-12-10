@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock, FileDown, Save, ChevronDown, ChevronUp } from "lucide-react"
+import { Banknote, CreditCard, Package, TrendingUp, LogOut, DollarSign, Calculator, ShoppingCart, Check, Clock, Trash2, ArrowLeft, Lock, FileDown, Save, ChevronDown, ChevronUp, ArrowUpDown } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import type { Product, Sale, IPV } from "@/lib/types"
@@ -48,6 +48,7 @@ export function SalesInterface({
   const [isPDFModalOpen, setIsPDFModalOpen] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [isOutOfStockOpen, setIsOutOfStockOpen] = useState(false)
+  const [sortBy, setSortBy] = useState<"alphabetical" | "price" | "sales">("alphabetical")
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabase = createClient()
@@ -481,8 +482,22 @@ export function SalesInterface({
         {/* Products Tab */}
         {activeTab === "products" && (() => {
           // Separate products into available and out-of-stock to avoid multiple filtering
-          const availableProducts = products.filter(product => product.current_stock > 0)
+          let availableProducts = products.filter(product => product.current_stock > 0)
           const outOfStockProducts = products.filter(product => product.current_stock === 0)
+          
+          // Sort available products based on sortBy state
+          availableProducts = [...availableProducts].sort((a, b) => {
+            if (sortBy === "alphabetical") {
+              return a.name.localeCompare(b.name)
+            } else if (sortBy === "price") {
+              return b.price - a.price // Higher price first
+            } else if (sortBy === "sales") {
+              const aSold = a.initial_stock - a.current_stock
+              const bSold = b.initial_stock - b.current_stock
+              return bSold - aSold // Most sold first
+            }
+            return 0
+          })
 
           return (
             <div className="space-y-4">
@@ -510,6 +525,39 @@ export function SalesInterface({
                 </Card>
               )}
 
+              {/* Sort buttons */}
+              {products.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  <Button
+                    variant={sortBy === "alphabetical" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSortBy("alphabetical")}
+                    className="flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                    A-Z
+                  </Button>
+                  <Button
+                    variant={sortBy === "price" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSortBy("price")}
+                    className="flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                    Precio
+                  </Button>
+                  <Button
+                    variant={sortBy === "sales" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSortBy("sales")}
+                    className="flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5" />
+                    Más vendidos
+                  </Button>
+                </div>
+              )}
+
               {products.length === 0 ?  (
                 <Card>
                   <CardContent className="py-8 text-center text-gray-500">
@@ -519,8 +567,8 @@ export function SalesInterface({
                 </Card>
               ) : (
                 <>
-                  {/* Available Products (stock > 0) */}
-                  <div className="space-y-2">
+                  {/* Available Products (stock > 0) - Two column grid on mobile */}
+                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     {availableProducts.map((product) => {
                       const isSelected = selectedProducts.has(product.id)
                       const selectedQty = selectedProducts.get(product.id) || 0
@@ -528,59 +576,56 @@ export function SalesInterface({
                       return (
                         <Card 
                           key={product.id} 
-                          className={`p-4 bg-white transition-shadow ${
+                          className={`p-2 sm:p-3 bg-white transition-shadow ${
                             isSelected ? 'ring-2 ring-purple-500 shadow-md' : 'hover:shadow-md'
                           } ${isIPVClosed ? 'opacity-75' : ''}`}
                         >
-                          <div className="flex items-start gap-3">
-                            <div className="pt-1">
+                          <div className="space-y-2">
+                            <div className="flex items-start gap-2">
                               <Checkbox
                                 checked={isSelected}
                                 onCheckedChange={() => toggleProductSelection(product.id)}
                                 disabled={isIPVClosed}
-                                className="h-5 w-5"
+                                className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5"
                               />
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-tight">{product.name}</h3>
+                                <p className="text-sm sm:text-base font-bold text-blue-600">${formatCurrency(product.price)}</p>
+                              </div>
                             </div>
                             
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
-                              <p className="text-lg font-bold text-blue-600">${formatCurrency(product.price)}</p>
-                              <div className="flex gap-3 mt-2 text-xs">
-                                <span className="text-gray-600">
-                                  Entrante: <span className="font-semibold">{product.initial_stock}</span>
+                            <div className="space-y-1 text-[10px] sm:text-xs">
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Vendidos:</span>
+                                <span className="font-semibold text-green-600">
+                                  {product.initial_stock - product.current_stock}
                                 </span>
-                                <span className="text-gray-600">
-                                  Vendidos:{" "}
-                                  <span className="font-semibold text-green-600">
-                                    {product.initial_stock - product.current_stock}
-                                  </span>
-                                </span>
-                                <span className="text-gray-600">
-                                  Restante:{" "}
-                                  <span className={`font-semibold ${Math.max(0, product.current_stock - selectedQty) > 5 ? "text-blue-600" : "text-red-600"}`}>
-                                    {Math.max(0, product.current_stock - selectedQty)}
-                                  </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Restante:</span>
+                                <span className={`font-semibold ${Math.max(0, product.current_stock - selectedQty) > 5 ? "text-blue-600" : "text-red-600"}`}>
+                                  {Math.max(0, product.current_stock - selectedQty)}
                                 </span>
                               </div>
                             </div>
                             
                             {isSelected && !isIPVClosed && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center justify-center gap-1.5 pt-1">
                                 <Button
                                   variant="outline"
                                   size="icon"
                                   onClick={() => updateProductQuantity(product.id, selectedQty - 1)}
-                                  className="h-8 w-8"
+                                  className="h-7 w-7 sm:h-8 sm:w-8"
                                 >
                                   -
                                 </Button>
-                                <span className="w-8 text-center font-bold">{selectedQty}</span>
+                                <span className="w-6 sm:w-8 text-center font-bold text-sm">{selectedQty}</span>
                                 <Button
                                   variant="outline"
                                   size="icon"
                                   onClick={() => updateProductQuantity(product.id, selectedQty + 1)}
                                   disabled={selectedQty >= product.current_stock}
-                                  className="h-8 w-8"
+                                  className="h-7 w-7 sm:h-8 sm:w-8"
                                 >
                                   +
                                 </Button>
@@ -616,45 +661,44 @@ export function SalesInterface({
                           </button>
                         </CollapsibleTrigger>
                         <CollapsibleContent>
-                          <CardContent className="pt-0 space-y-2">
-                            {outOfStockProducts.map((product) => (
-                              <Card 
-                                key={product.id} 
-                                className="p-4 bg-white opacity-60"
-                              >
-                                <div className="flex items-start gap-3">
-                                  <div className="pt-1">
-                                    <Checkbox
-                                      checked={false}
-                                      disabled={true}
-                                      className="h-5 w-5"
-                                    />
-                                  </div>
-                                  
-                                  <div className="flex-1 min-w-0">
-                                    <h3 className="font-semibold text-gray-900 truncate">{product.name}</h3>
-                                    <p className="text-lg font-bold text-blue-600">${formatCurrency(product.price)}</p>
-                                    <div className="flex gap-3 mt-2 text-xs">
-                                      <span className="text-gray-600">
-                                        Entrante: <span className="font-semibold">{product.initial_stock}</span>
-                                      </span>
-                                      <span className="text-gray-600">
-                                        Vendidos:{" "}
+                          <CardContent className="pt-0">
+                            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                              {outOfStockProducts.map((product) => (
+                                <Card 
+                                  key={product.id} 
+                                  className="p-2 sm:p-3 bg-white opacity-60"
+                                >
+                                  <div className="space-y-2">
+                                    <div className="flex items-start gap-2">
+                                      <Checkbox
+                                        checked={false}
+                                        disabled={true}
+                                        className="h-4 w-4 sm:h-5 sm:w-5 mt-0.5"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-tight">{product.name}</h3>
+                                        <p className="text-sm sm:text-base font-bold text-blue-600">${formatCurrency(product.price)}</p>
+                                      </div>
+                                    </div>
+                                    
+                                    <div className="space-y-1 text-[10px] sm:text-xs">
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">Vendidos:</span>
                                         <span className="font-semibold text-green-600">
                                           {product.initial_stock - product.current_stock}
                                         </span>
-                                      </span>
-                                      <span className="text-gray-600">
-                                        Restante:{" "}
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">Restante:</span>
                                         <span className="font-semibold text-red-600">
                                           0 (Agotado)
                                         </span>
-                                      </span>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              </Card>
-                            ))}
+                                </Card>
+                              ))}
+                            </div>
                         </CardContent>
                       </CollapsibleContent>
                     </Card>
