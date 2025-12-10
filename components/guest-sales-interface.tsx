@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -255,6 +255,22 @@ export function GuestSalesInterface() {
   // Calculate bill totals
   const totalBills = bills.reduce((sum, b) => sum + b.denomination * b.count, 0)
 
+  // Memoize sorted products to avoid re-sorting on every render
+  const sortedProducts = useMemo(() => {
+    return [...products].sort((a, b) => {
+      if (sortBy === "alphabetical") {
+        return a.name.localeCompare(b.name)
+      } else if (sortBy === "price") {
+        return b.price - a.price // Higher price first
+      } else if (sortBy === "sales") {
+        const aSold = a.soldCash + a.soldTransfer
+        const bSold = b.soldCash + b.soldTransfer
+        return bSold - aSold // Most sold first
+      }
+      return 0
+    })
+  }, [products, sortBy])
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -443,18 +459,7 @@ export function GuestSalesInterface() {
               </Card>
             ) : (
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                {[...products].sort((a, b) => {
-                  if (sortBy === "alphabetical") {
-                    return a.name.localeCompare(b.name)
-                  } else if (sortBy === "price") {
-                    return b.price - a.price // Higher price first
-                  } else if (sortBy === "sales") {
-                    const aSold = a.soldCash + a.soldTransfer
-                    const bSold = b.soldCash + b.soldTransfer
-                    return bSold - aSold // Most sold first
-                  }
-                  return 0
-                }).map((product) => {
+                {sortedProducts.map((product) => {
                   const isSelected = selectedProducts.has(product.id)
                   const selectedQty = selectedProducts.get(product.id) || 0
 
